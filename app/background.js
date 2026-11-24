@@ -5,6 +5,13 @@ function isClassJournalUrl(url = "") {
         /\/(?:journal\/my|grade)\/\d+/.test(url);
 }
 
+// ДОБАВЛЕНО (в начало, после isClassJournalUrl): единый хелпер выбора окна
+function getActiveTabQuery(windowId) {
+    return windowId !== undefined
+        ? { active: true, windowId }
+        : { active: true, currentWindow: true };
+}
+
 function notifyTabContext(tab, force = false) {
     if (!tab?.id) return;
 
@@ -20,6 +27,7 @@ function notifyTabContext(tab, force = false) {
     chrome.runtime.sendMessage({
         target: "sidepanel",
         type: "context_changed",
+        windowId: tab.windowId, // ДОБАВЛЕНО: метка окна
         url,
         isJournal: onJournal
     }).catch(() => {});
@@ -53,7 +61,8 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message?.action === "reload_active_tab") {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        // ИЗМЕНЕНО: используем windowId вместо currentWindow
+        chrome.tabs.query(getActiveTabQuery(message.windowId), (tabs) => {
             const tab = tabs?.[0];
             if (tab?.id) {
                 chrome.tabs.reload(tab.id);
@@ -89,13 +98,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message?.target === "content") {
         const isContextCheck = message.payload?.action === "check_context";
 
-        chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+        // ИЗМЕНЕНО: ищем активную вкладку строго в окне, откуда пришла команда
+        chrome.tabs.query(getActiveTabQuery(message.windowId), async (tabs) => {
             const tab = tabs?.[0];
+            const replyWindowId = message.windowId ?? tab?.windowId;
+
             if (!tab?.id || !tab.url?.includes("school.mos.ru")) {
                 if (!isContextCheck) {
                     chrome.runtime.sendMessage({
                         target: "sidepanel",
                         type: "error",
+                        windowId: replyWindowId,
                         title: "Нет активного журнала МЭШ",
                         summary: "Откройте страницу электронного журнала на school.mos.ru и повторите запуск."
                     }).catch(() => {});
@@ -103,6 +116,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     chrome.runtime.sendMessage({
                         target: "sidepanel",
                         type: "page_context",
+                        windowId: replyWindowId,
                         isJournalPage: false,
                         isClassJournal: false,
                         className: ""
@@ -124,6 +138,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             chrome.runtime.sendMessage({
                                 target: "sidepanel",
                                 type: "page_context",
+                                windowId: replyWindowId,
                                 isJournalPage: isClassJournalUrl(tab.url),
                                 isClassJournal: false,
                                 className: ""
@@ -137,6 +152,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         chrome.runtime.sendMessage({
                             target: "sidepanel",
                             type: "page_context",
+                            windowId: replyWindowId,
                             ...response
                         }).catch(() => {});
                     }
@@ -147,6 +163,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     chrome.runtime.sendMessage({
                         target: "sidepanel",
                         type: "error",
+                        windowId: replyWindowId,
                         title: "Ошибка подключения к странице",
                         summary: err.message
                     }).catch(() => {});
@@ -157,7 +174,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     }
 
+    // ИЗМЕНЕНО (в самом конце): прикрепляем windowId отправителя при ретрансляции
     if (message?.target === "sidepanel") {
-        chrome.runtime.sendMessage(message).catch(() => {});
+        chrome.runtime.sendMessage({
+            ...message,
+            windowId: message.windowId ?? sender.tab?.windowId
+        }).catch(() => {});
     }
 });

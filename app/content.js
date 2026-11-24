@@ -17,6 +17,17 @@
         5: "Затрудняюсь ответить"
     };
 
+    function getFallbackAcademicYear() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth(); // 0-11
+        const beginYear = (month >= 7) ? year : year - 1; // Август (7) и позже - новый год
+        return {
+            begin: `01.09.${beginYear}`,
+            end: `31.08.${beginYear + 1}`
+        };
+    }
+
     const IMPORTANT_KEYWORDS = [
         "к/р", "с/р", "контрольн", "самостоятельн",
         "тест", "проверочн", "практическ", "диктант", "сочинен"
@@ -531,8 +542,9 @@
         const classLevelId = firstStudent.class_unit?.class_level_id || firstStudent.class_level;
         const schoolId = firstStudent.school_id;
         const educationLevelId = firstStudent.education_level || 2;
-        const beginDate = groupObj.begin_date || "01.09.2026";
-        const endDate = groupObj.end_date || "31.08.2027";
+        const { begin: fallbackBegin, end: fallbackEnd } = getFallbackAcademicYear();
+        const beginDate = groupObj.begin_date || fallbackBegin;
+        const endDate = groupObj.end_date || fallbackEnd;
 
         const marksUrl = `https://school.mos.ru/api/ej/core/teacher/v1/marks?group_ids=${groupId}&subject_id=${subjectId}&class_level_id=${classLevelId}&lesson_date_from=${beginDate}&lesson_date_to=${endDate}&with_non_numeric_entries=true&per_page=1000&page=1`;
         const attendancesUrl = `https://school.mos.ru/api/ej/core/teacher/v1/attendances?group_ids=${groupId}&class_level_id=${classLevelId}&academic_year_id=${aid}&start_at=${beginDate}&stop_at=${endDate}&page=1&per_page=1000`;
@@ -893,14 +905,28 @@
     }
 
     // =========================================================================
-    // 5. ГЛАВНЫЙ КОНТРОЛЛЕР
+    // 5. ГЛАВНЫЙ КОНТРОЛЛЕР И РЕЕСТР АССИСТЕНТОВ
     // =========================================================================
 
-    async function runRobot(forceRecalc, processAll, mode = "background") {
+    const ASSISTANTS = {
+        skills: {
+            processAPI: processClassAPI,
+            processUI: processClassUI
+        }
+    };
+
+    async function runRobot(assistantId, options = {}) {
         if (window.isMeshRobotRunning) {
             return;
         }
 
+        const assistant = ASSISTANTS[assistantId];
+        if (!assistant) {
+            console.error(`[МЭШ Ассистент] Неизвестный ассистент: ${assistantId}`);
+            return;
+        }
+
+        const { forceRecalc, processAll, mode = "background" } = options;
         window.isMeshRobotRunning = true;
         window.meshRobotStopRequested = false;
         window.meshRobotPaused = false;
@@ -928,8 +954,8 @@
                 let currentClass = dropdownWrapper ? dropdownWrapper.textContent.trim() : "Текущий класс";
 
                 let stats = mode === "background"
-                    ? await processClassAPI(forceRecalc, currentClass, settings)
-                    : await processClassUI(forceRecalc, currentClass, settings);
+                    ? await assistant.processAPI(forceRecalc, currentClass, settings)
+                    : await assistant.processUI(forceRecalc, currentClass, settings);
 
                 globalStats.processed += stats.processed;
                 globalStats.alreadySet += stats.alreadySet;
@@ -946,13 +972,14 @@
 
             const summaryText =
                 `Классов пройдено: ${globalStats.classes}\n` +
-                `Успешно выставлено: ${globalStats.processed}\n` +
-                `Уже стояли (пропущено): ${globalStats.alreadySet}\n` +
+                `Успешно обработано: ${globalStats.processed}\n` +
+                `Пропущено (уже стоят): ${globalStats.alreadySet}\n` +
                 `Нет данных: ${globalStats.skipped}`;
 
             if (window.meshRobotStopRequested) {
                 sendPanelUpdate({
                     type: "finish",
+                    assistantId,
                     title: "Остановлено пользователем",
                     summary: summaryText,
                     isError: false,
@@ -962,6 +989,7 @@
             } else {
                 sendPanelUpdate({
                     type: "finish",
+                    assistantId,
                     title: "Готово!",
                     summary: summaryText,
                     isError: false,
@@ -972,6 +1000,7 @@
             console.error("[МЭШ Ассистент] Ошибка:", err);
             sendPanelUpdate({
                 type: "error",
+                assistantId,
                 title: "Произошла ошибка",
                 summary: `${err.message}\n\nПодробности в консоли (F12).`,
                 isError: true,
@@ -991,7 +1020,11 @@
             const data = request?.payload || request || {};
 
             if (action === "start") {
-                runRobot(data.forceRecalc, data.processAll, data.mode);
+                runRobot(data.assistantId || "skills", {
+                    forceRecalc: data.forceRecalc,
+                    processAll: data.processAll,
+                    mode: data.mode
+                });
             } else if (action === "pause") {
                 if (window.isMeshRobotRunning) {
                     window.meshRobotPaused = true;

@@ -153,6 +153,21 @@ fontScaleSlider?.addEventListener("input", () => {
     applyFontScaleStep(fontScaleSlider.value);
 });
 
+// ИЗМЕНЕНО (на месте старой sendMessageToBackground): кешируем ID своего окна один раз
+let currentWindowId = null;
+const currentWindowIdPromise = chrome.windows.getCurrent().then(win => {
+    currentWindowId = win.id;
+    return win.id;
+});
+
+async function sendMessageToBackground(payload) {
+    const windowId = currentWindowId ?? await currentWindowIdPromise;
+    return chrome.runtime.sendMessage({
+        ...payload,
+        windowId
+    });
+}
+
 // Создаём карточку-аккордеон для ассистента «Учебные умения»
 const skillsCard = typeof createAssistantCard === "function"
     ? createAssistantCard({
@@ -166,14 +181,14 @@ const skillsCard = typeof createAssistantCard === "function"
                 isTaskPaused,
                 isTaskPaused ? "На паузе" : "Возобновление..."
             );
-            chrome.runtime.sendMessage({
+            sendMessageToBackground({
                 target: "content",
                 payload: { action }
             });
         },
         onStop: () => {
             isTaskPaused = false;
-            chrome.runtime.sendMessage({
+            sendMessageToBackground({
                 target: "content",
                 payload: { action: "stop" }
             });
@@ -182,7 +197,7 @@ const skillsCard = typeof createAssistantCard === "function"
             isTaskPaused = false;
             isTaskRunning = false;
             skillsCard.hideRunPanel();
-            chrome.runtime.sendMessage({ action: "reload_active_tab" });
+            sendMessageToBackground({ action: "reload_active_tab" });
         }
     })
     : null;
@@ -213,34 +228,37 @@ function applyClassJournalState(isClassJournal) {
 function requestPageContextWithRetry(retriesLeft = 3) {
     clearTimeout(contextRetryTimer);
 
-    chrome.runtime.sendMessage({
+    sendMessageToBackground({
         target: "content",
         payload: { action: "check_context" }
-    }, (res) => {
-        if (!chrome.runtime.lastError && res && typeof res.isClassJournal === "boolean") {
+    }).then((res) => {
+        if (res && typeof res.isClassJournal === "boolean") {
             applyClassJournalState(res.isClassJournal);
             return;
         }
-
-        if (chrome.runtime.lastError || !res?.ok) {
-            if (retriesLeft > 0) {
-                contextRetryTimer = setTimeout(() => {
-                    requestPageContextWithRetry(retriesLeft - 1);
-                }, 700);
-            } else {
-                applyClassJournalState(false);
-            }
+        if (retriesLeft > 0) {
+            contextRetryTimer = setTimeout(() => {
+                requestPageContextWithRetry(retriesLeft - 1);
+            }, 700);
+        } else {
+            applyClassJournalState(false);
+        }
+    }).catch(() => {
+        if (retriesLeft > 0) {
+            contextRetryTimer = setTimeout(() => {
+                requestPageContextWithRetry(retriesLeft - 1);
+            }, 700);
+        } else {
+            applyClassJournalState(false);
         }
     });
 }
 
 document.querySelectorAll(".link-btn[data-url]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-        const win = await chrome.windows.getCurrent();
-        chrome.runtime.sendMessage({
+    btn.addEventListener("click", () => {
+        sendMessageToBackground({
             action: "open_url",
-            url: btn.dataset.url,
-            windowId: win.id
+            url: btn.dataset.url
         });
     });
 });
@@ -311,7 +329,12 @@ document.getElementById("resetSettingsBtn").addEventListener("click", async () =
 
 const startBtn = document.getElementById("startBtn");
 
-function setRunningState(running) {
+// Реестр активных ассистентов для маршрутизации сообщений
+const activeAssistants = {
+    skills: skillsCard
+};
+
+function setRunningState(assistantId, running) {
     isTaskRunning = running;
     if (!running) {
         isTaskPaused = false;
@@ -320,35 +343,38 @@ function setRunningState(running) {
         startBtn.style.display = running ? "none" : "";
         startBtn.disabled = running;
     }
-    skillsCard?.setRunning(running);
+    activeAssistants[assistantId]?.setRunning(running);
 }
 
 startBtn?.addEventListener("click", () => {
     const mode = document.querySelector('input[name="mode"]:checked')?.value || "background";
     const forceRecalc = document.getElementById("forceRecalc").checked;
     const processAll = document.getElementById("processAll").checked;
+    const assistantId = "skills"; // Пока у нас один ассистент
 
     isTaskPaused = false;
+    const card = activeAssistants[assistantId];
 
-    if (skillsCard) {
-        skillsCard.setCollapsed(false);
-        skillsCard.showRunPanel("neutral");
-        skillsCard.refs.status.textContent = "Обработка...";
-        skillsCard.refs.className.textContent = "Подготовка...";
-        skillsCard.refs.studentName.textContent = "Запуск...";
-        skillsCard.refs.counter.textContent = "0 из 0";
-        skillsCard.refs.barFill.style.width = "0%";
-        skillsCard.refs.summary.classList.remove("visible");
-        skillsCard.refs.summary.textContent = "";
-        skillsCard.refs.actions.classList.remove("visible");
+    if (card) {
+        card.setCollapsed(false);
+        card.showRunPanel("neutral");
+        card.refs.status.textContent = "Обработка...";
+        card.refs.className.textContent = "Подготовка...";
+        card.refs.studentName.textContent = "Запуск...";
+        card.refs.counter.textContent = "0 из 0";
+        card.refs.barFill.style.width = "0%";
+        card.refs.summary.classList.remove("visible");
+        card.refs.summary.textContent = "";
+        card.refs.actions.classList.remove("visible");
     }
 
-    setRunningState(true);
+    setRunningState(assistantId, true);
 
-    chrome.runtime.sendMessage({
+    sendMessageToBackground({
         target: "content",
         payload: {
             action: "start",
+            assistantId,
             mode,
             forceRecalc,
             processAll
@@ -356,9 +382,16 @@ startBtn?.addEventListener("click", () => {
     });
 });
 
-chrome.runtime.onMessage.addListener((msg) => {
+// ИЗМЕНЕНО: добавлен параметр sender и фильтр по окну в самом начале обработчика
+chrome.runtime.onMessage.addListener((msg, sender) => {
     if (msg?.target !== "sidepanel") return;
 
+    const incomingWindowId = msg.windowId ?? sender?.tab?.windowId;
+    if (incomingWindowId !== undefined && currentWindowId !== null && incomingWindowId !== currentWindowId) {
+        return;
+    }
+
+    // 1. Обработка контекста страницы
     if (msg.type === "page_context") {
         clearTimeout(contextRetryTimer);
         if (msg.isClassJournal) {
@@ -386,9 +419,13 @@ chrome.runtime.onMessage.addListener((msg) => {
         return;
     }
 
+    // 2. Обработка состояний робота (пауза, прогресс, финиш)
+    const assistantId = msg.assistantId || "skills";
+    const card = activeAssistants[assistantId];
+
     if (msg.type === "paused") {
         isTaskPaused = Boolean(msg.isPaused);
-        skillsCard?.setPausedState(
+        card?.setPausedState(
             isTaskPaused,
             isTaskPaused ? "На паузе" : "Обработка..."
         );
@@ -396,47 +433,47 @@ chrome.runtime.onMessage.addListener((msg) => {
     }
 
     if (msg.type === "progress") {
-        if (!skillsCard) return;
-        skillsCard.showRunPanel("neutral");
+        if (!card) return;
+        card.showRunPanel("neutral");
         if (!isTaskPaused) {
-            skillsCard.setRunning(true);
-            skillsCard.refs.status.textContent = "Обработка...";
+            card.setRunning(true);
+            card.refs.status.textContent = "Обработка...";
         }
-        if (msg.className !== undefined) skillsCard.refs.className.textContent = msg.className;
-        if (msg.studentName !== undefined) skillsCard.refs.studentName.textContent = msg.studentName;
+        if (msg.className !== undefined) card.refs.className.textContent = msg.className;
+        if (msg.studentName !== undefined) card.refs.studentName.textContent = msg.studentName;
         if (msg.current !== undefined && msg.total !== undefined) {
-            skillsCard.refs.counter.textContent = `${msg.current} из ${msg.total}`;
+            card.refs.counter.textContent = `${msg.current} из ${msg.total}`;
             const pct = msg.total > 0 ? Math.min(100, Math.round((msg.current / msg.total) * 100)) : 0;
-            skillsCard.refs.barFill.style.width = `${pct}%`;
+            card.refs.barFill.style.width = `${pct}%`;
         }
     } else if (msg.type === "finish" || msg.type === "error") {
-    setRunningState(false);
-    if (!skillsCard) return;
+        setRunningState(assistantId, false);
+        if (!card) return;
 
-    skillsCard.setCollapsed(false);
-    const isStopped = Boolean(msg.isStopped);
-    const isErr = !isStopped && Boolean(msg.isError || msg.type === "error");
+        card.setCollapsed(false);
+        const isStopped = Boolean(msg.isStopped);
+        const isErr = !isStopped && Boolean(msg.isError || msg.type === "error");
 
-    skillsCard.showRunPanel(isErr ? "error" : (isStopped ? "neutral" : "success"));
+        card.showRunPanel(isErr ? "error" : (isStopped ? "neutral" : "success"));
 
-    if (isStopped) {
-        skillsCard.refs.badge.className = "assistant-card-badge is-paused";
-        skillsCard.refs.badge.textContent = "Остановлено";
-    } else if (isErr) {
-        skillsCard.refs.badge.className = "assistant-card-badge is-error";
-        skillsCard.refs.badge.textContent = "Ошибка";
-    } else {
-        skillsCard.refs.badge.className = "assistant-card-badge is-success";
-        skillsCard.refs.badge.textContent = "Готово";
+        if (isStopped) {
+            card.refs.badge.className = "assistant-card-badge is-paused";
+            card.refs.badge.textContent = "Остановлено";
+        } else if (isErr) {
+            card.refs.badge.className = "assistant-card-badge is-error";
+            card.refs.badge.textContent = "Ошибка";
+        } else {
+            card.refs.badge.className = "assistant-card-badge is-success";
+            card.refs.badge.textContent = "Готово";
+        }
+
+        card.refs.status.textContent = msg.title || (
+            isStopped ? "Остановлено" : (isErr ? "Ошибка" : "Готово!")
+        );
+        if (!isErr && !isStopped) card.refs.barFill.style.width = "100%";
+
+        card.refs.summary.textContent = msg.summary || "";
+        card.refs.summary.classList.add("visible");
+        card.refs.actions.classList.add("visible");
     }
-
-    skillsCard.refs.status.textContent = msg.title || (
-        isStopped ? "Остановлено" : (isErr ? "Ошибка" : "Готово!")
-    );
-    if (!isErr && !isStopped) skillsCard.refs.barFill.style.width = "100%";
-
-    skillsCard.refs.summary.textContent = msg.summary || "";
-    skillsCard.refs.summary.classList.add("visible");
-    skillsCard.refs.actions.classList.add("visible");
-}
 });
