@@ -4,7 +4,8 @@ function createAssistantCard({
     open = true,
     onTogglePause,
     onStop,
-    onReload
+    onReload,
+    onOpenReport
 }) {
     const card = document.createElement("section");
     card.className = `assistant-card${open ? " is-open" : ""}`;
@@ -58,8 +59,11 @@ function createAssistantCard({
 
                 <div class="panel-summary" data-role="summary"></div>
                 <div class="panel-actions" data-role="actions">
-                    <button type="button" class="btn btn-secondary" data-role="reloadBtn" style="width:100%;">
+                    <button type="button" class="btn btn-secondary" data-role="reloadBtn">
                         Обновить страницу
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-role="reportBtn" hidden>
+                        Открыть отчёт
                     </button>
                 </div>
                 <div class="assistant-report-slot" data-role="reportSlot"></div>
@@ -87,7 +91,8 @@ function createAssistantCard({
         summary: card.querySelector('[data-role="summary"]'),
         actions: card.querySelector('[data-role="actions"]'),
         reloadBtn: card.querySelector('[data-role="reloadBtn"]'),
-        reportSlot: card.querySelector('[data-role="reportSlot"]')
+        reportSlot: card.querySelector('[data-role="reportSlot"]'),
+        reportBtn: card.querySelector('[data-role="reportBtn"]')
     };
 
     let isPaused = false;
@@ -100,21 +105,21 @@ function createAssistantCard({
     }
 
     function setPaused(paused) {
-    isPaused = Boolean(paused);
-    refs.pauseBtn.classList.toggle("is-paused", isPaused);
-    refs.pauseBtn.title = isPaused ? "Продолжить" : "Пауза";
-    refs.pauseBtn.setAttribute("aria-label", isPaused ? "Продолжить" : "Пауза");
-    if (refs.pauseIcon) refs.pauseIcon.style.display = isPaused ? "none" : "block";
-    if (refs.playIcon) refs.playIcon.style.display = isPaused ? "block" : "none";
-}
+        isPaused = Boolean(paused);
+        refs.pauseBtn.classList.toggle("is-paused", isPaused);
+        refs.pauseBtn.title = isPaused ? "Продолжить" : "Пауза";
+        refs.pauseBtn.setAttribute("aria-label", isPaused ? "Продолжить" : "Пауза");
+        if (refs.pauseIcon) refs.pauseIcon.style.display = isPaused ? "none" : "block";
+        if (refs.playIcon) refs.playIcon.style.display = isPaused ? "block" : "none";
+    }
 
     function setCollapsed(collapsed) {
-    isCollapsed = Boolean(collapsed);
-    refs.details.style.display = isCollapsed ? "none" : "block";
-    refs.collapseBtn.setAttribute("aria-expanded", String(!isCollapsed));
-    refs.collapseBtn.textContent = isCollapsed ? "▾" : "▴";
-    refs.collapseBtn.title = isCollapsed ? "Развернуть" : "Свернуть";
-}
+        isCollapsed = Boolean(collapsed);
+        refs.details.style.display = isCollapsed ? "none" : "block";
+        refs.collapseBtn.setAttribute("aria-expanded", String(!isCollapsed));
+        refs.collapseBtn.textContent = isCollapsed ? "▾" : "▴";
+        refs.collapseBtn.title = isCollapsed ? "Развернуть" : "Свернуть";
+    }
 
     refs.header.addEventListener("click", () => {
         setOpen(!card.classList.contains("is-open"));
@@ -139,6 +144,10 @@ function createAssistantCard({
         onReload?.();
     });
 
+    refs.reportBtn.addEventListener("click", () => {
+        onOpenReport?.();
+    });
+
     function showRunPanel(variant = "neutral") {
         refs.runPanel.classList.remove("neutral", "success", "error");
         refs.runPanel.classList.add("visible", variant);
@@ -149,6 +158,7 @@ function createAssistantCard({
         refs.summary.classList.remove("visible");
         refs.summary.textContent = "";
         refs.actions.classList.remove("visible");
+        refs.reportBtn.hidden = true;
         refs.barFill.style.width = "0%";
         setPaused(false);
         setCollapsed(false);

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="mesh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчёт — МЭШ Ассистент</title>
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/report.css">
+</head>
+<body>
+    <div class="report-page">
+        <header class="report-topbar no-print">
+            <div class="top-row-title">
+                <h1>Отчёт МЭШ Ассистент</h1>
+            </div>
+
+            <div class="top-row-history">
+                <label for="historySelect" class="history-label">Выберите отчёт для показа</label>
+                <select id="historySelect" class="report-select history-select"></select>
+            </div>
+
+            <div class="top-row-controls">
+                <select id="classFilter" class="report-select" aria-label="Фильтр по классу" hidden>
+                    <option value="">Все классы</option>
+                </select>
+                <label class="filter-chip">
+                    <input type="checkbox" id="onlyDisputedToggle">
+                    <span>Только спорные</span>
+                </label>
+                <div class="control-group">
+                    <label for="styleSelect" class="control-label">Стиль</label>
+                    <select id="styleSelect" class="report-select">
+                        <option value="calm">Тихий</option>
+                        <option value="swiss">Строгий документ</option>
+                        <option value="bw">Чёрно-белый</option>
+                        <option value="editorial">Журнальный</option>
+                    </select>
+                </div>
+                <button type="button" id="printPdfBtn" class="btn-primary">Сохранить в PDF</button>
+            </div>
+        </header>
+
+        <div class="print-header">
+            <h1 class="print-title">Отчёт МЭШ Ассистент</h1>
+        </div>
+
+        <div id="reportMeta" class="report-meta"></div>
+        <section id="reportSummary" class="report-summary"></section>
+        <main id="reportContent" class="report-content"></main>
+    </div>
+
+    <script src="js/report.js"></script>
+</body>
+</html>

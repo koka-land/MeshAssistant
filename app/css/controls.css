@@ -1,0 +1,96 @@
+/* ===== Тумблеры (Switch) ===== */
+.ui-switch,
+.check-row input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    width: 2.2rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background: var(--tabs-bg);
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.ui-switch::after,
+.check-row input[type="checkbox"]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0.15rem;
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    background: var(--surface);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+    transform: translateY(-50%);
+    transition: left 0.18s ease, background-color 0.18s ease;
+}
+
+.ui-switch:checked,
+.check-row input[type="checkbox"]:checked {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.ui-switch:checked::after,
+.check-row input[type="checkbox"]:checked::after {
+    left: calc(100% - 1rem);
+    background: var(--on-primary);
+}
+
+.ui-switch:focus-visible,
+.check-row input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ===== Радиокнопки с галочкой ===== */
+.ui-radio,
+.mode-card input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.12rem;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.ui-radio::after,
+.mode-card input[type="radio"]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.28rem;
+    height: 0.52rem;
+    border-right: 2px solid var(--on-primary);
+    border-bottom: 2px solid var(--on-primary);
+    transform: translate(-50%, -58%) rotate(45deg) scale(0);
+    transition: transform 0.15s ease;
+}
+
+.ui-radio:checked,
+.mode-card input[type="radio"]:checked {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.ui-radio:checked::after,
+.mode-card input[type="radio"]:checked::after {
+    transform: translate(-50%, -58%) rotate(45deg) scale(1);
+}
+
+.ui-radio:focus-visible,
+.mode-card input[type="radio"]:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}

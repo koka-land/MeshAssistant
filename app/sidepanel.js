@@ -27,6 +27,34 @@ let isTaskRunning = false;
 let isTaskPaused = false;
 let lastAppliedClassJournal = null;
 
+function openReportPage() {
+    chrome.tabs.create({ url: chrome.runtime.getURL("report.html") });
+}
+
+async function refreshLastReportLink() {
+    const section = document.getElementById("lastReportSection");
+    const meta = document.getElementById("lastReportMeta");
+    if (!section || !meta) return;
+
+    const { reportHistory = [] } = await chrome.storage.local.get("reportHistory");
+    const last = reportHistory[0];
+    if (!last) {
+        section.hidden = true;
+        return;
+    }
+
+    const time = new Date(last.createdAt).toLocaleString("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+    const classes = last.summary?.classes ?? 0;
+    const disputed = last.summary?.disputed ?? 0;
+    meta.textContent = `${time} · классов: ${classes}${disputed ? ` · спорных: ${disputed}` : ""}`;
+    section.hidden = false;
+}
+
 function setAccordionOpen(btn, body, open) {
     const isOpen = Boolean(open);
     btn?.setAttribute("aria-expanded", String(isOpen));
@@ -153,7 +181,6 @@ fontScaleSlider?.addEventListener("input", () => {
     applyFontScaleStep(fontScaleSlider.value);
 });
 
-// ИЗМЕНЕНО (на месте старой sendMessageToBackground): кешируем ID своего окна один раз
 let currentWindowId = null;
 const currentWindowIdPromise = chrome.windows.getCurrent().then(win => {
     currentWindowId = win.id;
@@ -198,7 +225,8 @@ const skillsCard = typeof createAssistantCard === "function"
             isTaskRunning = false;
             skillsCard.hideRunPanel();
             sendMessageToBackground({ action: "reload_active_tab" });
-        }
+        },
+        onOpenReport: openReportPage
     })
     : null;
 
@@ -263,6 +291,14 @@ document.querySelectorAll(".link-btn[data-url]").forEach(btn => {
     });
 });
 
+document.getElementById("openLastReportBtn")?.addEventListener("click", openReportPage);
+
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.reportHistory) {
+        refreshLastReportLink();
+    }
+});
+
 document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", () => {
         document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -289,6 +325,7 @@ async function loadSettingsUI() {
 }
 
 loadSettingsUI();
+refreshLastReportLink();
 requestPageContextWithRetry();
 
 document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
@@ -366,6 +403,7 @@ startBtn?.addEventListener("click", () => {
         card.refs.summary.classList.remove("visible");
         card.refs.summary.textContent = "";
         card.refs.actions.classList.remove("visible");
+        if (card.refs.reportBtn) card.refs.reportBtn.hidden = true;
     }
 
     setRunningState(assistantId, true);
@@ -382,7 +420,6 @@ startBtn?.addEventListener("click", () => {
     });
 });
 
-// ИЗМЕНЕНО: добавлен параметр sender и фильтр по окну в самом начале обработчика
 chrome.runtime.onMessage.addListener((msg, sender) => {
     if (msg?.target !== "sidepanel") return;
 
@@ -475,5 +512,31 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
         card.refs.summary.textContent = msg.summary || "";
         card.refs.summary.classList.add("visible");
         card.refs.actions.classList.add("visible");
+        if (card.refs.reportBtn) card.refs.reportBtn.hidden = isErr;
+    }
+});
+
+const guideDialog = document.getElementById("guideDialog");
+const closeGuideBtn = document.getElementById("closeGuideBtn");
+const guideVersionBadge = document.getElementById("guideVersionBadge");
+if (guideVersionBadge && chrome?.runtime?.getManifest) {
+    guideVersionBadge.textContent = `v${chrome.runtime.getManifest().version}`;
+}
+
+document.querySelectorAll("[data-open-guide]").forEach(btn => {
+    btn.addEventListener("click", () => {
+        if (guideDialog && !guideDialog.open) {
+            guideDialog.showModal();
+        }
+    });
+});
+
+closeGuideBtn?.addEventListener("click", () => {
+    guideDialog?.close();
+});
+
+guideDialog?.addEventListener("click", (e) => {
+    if (e.target === guideDialog) {
+        guideDialog.close();
     }
 });

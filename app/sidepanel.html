@@ -5,6 +5,7 @@
     <title>МЭШ Ассистент</title>
     <link rel="stylesheet" href="css/themes.css">
     <link rel="stylesheet" href="css/panel-base.css">
+    <link rel="stylesheet" href="css/controls.css">
     <link rel="stylesheet" href="css/assistant-card.css">
     <link rel="stylesheet" href="css/settings.css">
 </head>
@@ -29,14 +30,30 @@
     <div class="tabs">
         <button class="tab-btn active" data-tab="skills">Ассистент</button>
         <button class="tab-btn" data-tab="settings">Настройки</button>
+        <button type="button" class="tab-help-btn" data-open-guide title="Путеводитель" aria-label="Открыть путеводитель">?</button>
     </div>
 
     <!-- ВКЛАДКА 1: АССИСТЕНТ / БЫСТРЫЙ ДОСТУП -->
     <div id="tab-skills" class="tab-pane active">
         <div id="notClassJournalHint" style="display:none;">
             <div class="empty-state">
-                <strong>Журнал класса не открыт</strong>
-                Откройте журнал конкретного класса на school.mos.ru, чтобы появилась оценка учебных умений.
+                <div class="empty-state-title">
+                    <span class="ready-icon" aria-hidden="true">
+                        <svg viewBox="0 0 20 20" width="13" height="13" fill="none">
+                            <path d="M4.5 10.5L8.2 14.2L15.5 6.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <strong>Ассистенты готовы</strong>
+                </div>
+                <p class="empty-state-desc">
+                    Для начала работы вам нужно открыть подходящий раздел на school.mos.ru — нужные инструменты появятся здесь автоматически.
+                </p>
+                <p class="empty-state-hint">
+                    Сейчас журнал класса не открыт. Перейдите в любой класс или откройте путеводитель, чтобы узнать о доступных возможностях.
+                </p>
+                <button type="button" class="btn btn-secondary empty-state-btn" data-open-guide>
+                    Путеводитель по ассистентам
+                </button>
             </div>
 
             <div class="section-label">Полезные ссылки</div>
@@ -92,11 +109,23 @@
                 <button id="startBtn" class="btn btn-primary">Запустить</button>
             </div>
         </div>
+
+        <div id="lastReportSection" class="last-report-section" hidden>
+            <div class="section-label">Отчёты</div>
+            <button type="button" id="openLastReportBtn" class="link-btn">
+                <div class="last-report-info">
+                    <div class="link-title">Последний отчёт</div>
+                    <div id="lastReportMeta" class="last-report-meta"></div>
+                </div>
+                <span class="link-arrow">→</span>
+            </button>
+            <div class="last-report-hint">В памяти хранятся последние 5 запусков</div>
+        </div>
     </div>
 
     <!-- ВКЛАДКА 2: НАСТРОЙКИ -->
     <div id="tab-settings" class="tab-pane">
-        <div class="settings-group-header">Настройки оформления</div>
+        <div class="section-label">Настройки оформления</div>
 
         <div class="card">
             <button
@@ -170,7 +199,7 @@
 
         <hr class="settings-divider">
 
-        <div class="settings-group-header">Настройки ассистента</div>
+        <div class="section-label">Настройки ассистента</div>
 
         <div class="card">
             <button
@@ -257,6 +286,52 @@
 
     <!-- Резервный блок скрыт — управление и прогресс перенесены в аккордеон ассистента -->
     <div id="bottomPanel" class="bottom-panel neutral" style="display:none;"></div>
+
+    <dialog id="guideDialog" class="guide-dialog">
+        <div class="guide-header">
+            <div class="guide-title-wrap">
+                <span class="guide-title">Путеводитель</span>
+                <span id="guideVersionBadge" class="guide-version-badge"></span>
+            </div>
+            <button type="button" id="closeGuideBtn" class="guide-close-btn" aria-label="Закрыть">✕</button>
+        </div>
+        <div class="guide-body">
+            <div class="guide-section">
+                <div class="guide-section-title">Как это работает</div>
+                <p>Расширение само определяет открытую страницу МЭШ и показывает подходящие инструменты. Пока нужный раздел не открыт, здесь отображаются быстрые ссылки.</p>
+            </div>
+
+            <div class="guide-section">
+                <div class="guide-section-title">Доступные ассистенты</div>
+                <div class="guide-item">
+                    <strong>Учебные умения</strong>
+                    <p>Откройте журнал любого класса на <code>school.mos.ru</code>. Доступны два режима: быстрый фоновый (через API) и наглядный в реальном времени.</p>
+                </div>
+            </div>
+
+            <div class="guide-section">
+                <div class="guide-section-title">Полезно знать</div>
+                <p>Пороги среднего балла, процент пропусков, тему и размер шрифта можно настроить во вкладке <strong>«Настройки»</strong>.</p>
+            </div>
+
+            <details class="guide-changelog">
+                <summary class="guide-changelog-trigger">
+                    <span>Что нового</span>
+                    <span class="guide-changelog-chevron">▾</span>
+                </summary>
+                <div class="guide-changelog-body">
+                    <div class="guide-release">
+                        <div class="guide-release-title">Текущее обновление</div>
+                        <ul class="guide-release-list">
+                            <li>Обновлён интерфейс: единые отступы, новые тумблеры и плавные переходы.</li>
+                            <li>Добавлен путеводитель по ассистентам и быстрый доступ к справке (?).</li>
+                            <li>Улучшена стабильность работы при открытии нескольких окон браузера.</li>
+                        </ul>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </dialog>
 
     <footer class="panel-footer">
         <span>Автор:</span>
