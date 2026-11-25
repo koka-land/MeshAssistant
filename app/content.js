@@ -13,6 +13,15 @@
         switchNextClass
     } = window.MeshCore;
 
+    async function loadSchoolRules() {
+        if (!window.MeshJournalStatic) return null;
+        return (
+            (await window.MeshJournalStatic.syncSchoolMarkRules(false)) ||
+            (await window.MeshJournalStatic.getSchoolMarkRules()) ||
+            null
+        );
+    }
+
     async function runRobot(assistantId, options = {}) {
         if (window.isMeshRobotRunning) return;
 
@@ -32,6 +41,7 @@
 
         try {
             const settings = await getSettings();
+            const schoolRules = await loadSchoolRules();
 
             if (processAll) {
                 sendPanelUpdate({ type: "progress", studentName: "Переход к первому классу..." });
@@ -51,8 +61,8 @@
                 const currentClass = dropdownWrapper ? dropdownWrapper.textContent.trim() : "Текущий класс";
 
                 const stats = mode === "background"
-                    ? await assistant.processAPI(forceRecalc, currentClass, settings)
-                    : await assistant.processUI(forceRecalc, currentClass, settings);
+                    ? await assistant.processAPI(forceRecalc, currentClass, settings, schoolRules)
+                    : await assistant.processUI(forceRecalc, currentClass, settings, schoolRules);
 
                 globalStats.processed += stats.processed;
                 globalStats.alreadySet += stats.alreadySet;

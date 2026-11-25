@@ -46,7 +46,7 @@
                     <strong>Ассистенты готовы</strong>
                 </div>
                 <p class="empty-state-desc">
-                    Для начала работы вам нужно открыть подходящий раздел на school.mos.ru — нужные инструменты появятся здесь автоматически.
+                    Для начала работы вам нужно открыть подходящий раздел на school.mos.ru — нужные инструменты пояятся здесь автоматически.
                 </p>
                 <p class="empty-state-hint">
                     Сейчас журнал класса не открыт. Перейдите в любой класс или откройте путеводитель, чтобы узнать о доступных возможностях.
@@ -277,6 +277,89 @@
             </div>
         </div>
 
+        <div class="card">
+            <button
+                type="button"
+                id="schoolRulesAccordionBtn"
+                class="accordion-trigger"
+                aria-expanded="false"
+                aria-controls="schoolRulesAccordionBody"
+            >
+                <span>Правила школы</span>
+                <span class="accordion-chevron">▾</span>
+            </button>
+
+            <div id="schoolRulesAccordionBody" class="accordion-body">
+                <div class="skill-category">
+                    <div class="skill-category-title">Пороги отметок учебного года</div>
+                    <div class="threshold-list">
+                        <div class="threshold-row">
+                            <label>Отметка «5»</label>
+                            <div class="stepper-box">
+                                <span class="stepper-value">
+                                    <span class="stepper-prefix" aria-hidden="true">≥</span>
+                                    <span id="schoolRuleMark5">4.50</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="threshold-row">
+                            <label>Отметка «4»</label>
+                            <div class="stepper-box">
+                                <span class="stepper-value">
+                                    <span class="stepper-prefix" aria-hidden="true">≥</span>
+                                    <span id="schoolRuleMark4">3.50</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="threshold-row">
+                            <label>Отметка «3»</label>
+                            <div class="stepper-box">
+                                <span class="stepper-value">
+                                    <span class="stepper-prefix" aria-hidden="true">≥</span>
+                                    <span id="schoolRuleMark3">2.50</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="threshold-row">
+                            <label>Отметка «2»</label>
+                            <div class="stepper-box">
+                                <span class="stepper-value">
+                                    <span class="stepper-prefix" aria-hidden="true">≥</span>
+                                    <span id="schoolRuleMark2">2.00</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="threshold-row">
+                            <label>«Зачет»</label>
+                            <div class="stepper-box">
+                                <span class="stepper-value">
+                                    <span class="stepper-prefix" aria-hidden="true">≥</span>
+                                    <span id="schoolRuleCredit">3.00</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="skill-category-divider">
+
+                <div class="skill-category">
+                    <div class="skill-category-title">Промежуточная аттестация</div>
+                    <div class="threshold-list">
+                        <div class="threshold-row">
+                            <label>Учитывать отметки ПА</label>
+                            <div class="stepper-box">
+                                <span class="stepper-value">
+                                    <span id="schoolRuleInterim">Нет</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-note" id="schoolRulesMeta"></div>
+                </div>
+            </div>
+        </div>
+
         <div class="actions">
             <button id="saveSettingsBtn" class="btn btn-primary">Сохранить</button>
             <button id="resetSettingsBtn" class="btn btn-secondary">Сброс</button>
@@ -339,6 +422,7 @@
     </footer>
 
     <script src="assistant-card.js"></script>
+    <script src="js/journal-static.js"></script>
     <script src="sidepanel.js"></script>
 </body>
 </html>

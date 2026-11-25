@@ -19,6 +19,18 @@ const fontAccordionBtn = document.getElementById("fontAccordionBtn");
 const fontAccordionBody = document.getElementById("fontAccordionBody");
 const thresholdsAccordionBtn = document.getElementById("thresholdsAccordionBtn");
 const thresholdsAccordionBody = document.getElementById("thresholdsAccordionBody");
+const schoolRulesAccordionBtn = document.getElementById("schoolRulesAccordionBtn");
+const schoolRulesAccordionBody = document.getElementById("schoolRulesAccordionBody");
+
+const schoolRulesElements = {
+    metaEl: document.getElementById("schoolRulesMeta"),
+    mark5El: document.getElementById("schoolRuleMark5"),
+    mark4El: document.getElementById("schoolRuleMark4"),
+    mark3El: document.getElementById("schoolRuleMark3"),
+    mark2El: document.getElementById("schoolRuleMark2"),
+    creditEl: document.getElementById("schoolRuleCredit"),
+    interimEl: document.getElementById("schoolRuleInterim")
+};
 
 const darkSchemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
 let currentThemeMode = "mesh";
@@ -55,6 +67,12 @@ async function refreshLastReportLink() {
     section.hidden = false;
 }
 
+async function refreshSchoolRulesUI(rulesOverride = null) {
+    if (!window.MeshJournalStatic) return;
+    const rules = rulesOverride || await window.MeshJournalStatic.getSchoolMarkRules();
+    window.MeshJournalStatic.renderSchoolMarkRulesToDom(rules, schoolRulesElements);
+}
+
 function setAccordionOpen(btn, body, open) {
     const isOpen = Boolean(open);
     btn?.setAttribute("aria-expanded", String(isOpen));
@@ -74,6 +92,11 @@ fontAccordionBtn?.addEventListener("click", () => {
 thresholdsAccordionBtn?.addEventListener("click", () => {
     const currentlyOpen = thresholdsAccordionBtn.getAttribute("aria-expanded") === "true";
     setAccordionOpen(thresholdsAccordionBtn, thresholdsAccordionBody, !currentlyOpen);
+});
+
+schoolRulesAccordionBtn?.addEventListener("click", () => {
+    const currentlyOpen = schoolRulesAccordionBtn.getAttribute("aria-expanded") === "true";
+    setAccordionOpen(schoolRulesAccordionBtn, schoolRulesAccordionBody, !currentlyOpen);
 });
 
 function getStepDecimals(stepValue) {
@@ -294,8 +317,12 @@ document.querySelectorAll(".link-btn[data-url]").forEach(btn => {
 document.getElementById("openLastReportBtn")?.addEventListener("click", openReportPage);
 
 chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.reportHistory) {
+    if (area !== "local") return;
+    if (changes.reportHistory) {
         refreshLastReportLink();
+    }
+    if (changes.schoolMarkRules) {
+        refreshSchoolRulesUI(changes.schoolMarkRules.newValue);
     }
 });
 
@@ -325,10 +352,11 @@ async function loadSettingsUI() {
 }
 
 loadSettingsUI();
+refreshSchoolRulesUI();
 refreshLastReportLink();
 requestPageContextWithRetry();
 
-document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
+document.getElementById("saveSettingsBtn")?.addEventListener("click", async () => {
     const themeMode = document.querySelector('input[name="themeMode"]:checked')?.value || "mesh";
     const fontScaleStep = Math.max(-2, Math.min(2, parseInt(fontScaleSlider.value, 10) || 0));
     const highThreshold = parseFloat(document.getElementById("highThreshold").value) || 4.5;
@@ -348,20 +376,25 @@ document.getElementById("saveSettingsBtn").addEventListener("click", async () =>
     await chrome.storage.local.set({ settings });
 
     const statusEl = document.getElementById("saveStatus");
-    statusEl.textContent = "Настройки сохранены";
-    setTimeout(() => { statusEl.textContent = ""; }, 2000);
+    if (statusEl) {
+        statusEl.textContent = "Настройки сохранены";
+        setTimeout(() => { statusEl.textContent = ""; }, 2000);
+    }
 });
 
-document.getElementById("resetSettingsBtn").addEventListener("click", async () => {
+document.getElementById("resetSettingsBtn")?.addEventListener("click", async () => {
     await chrome.storage.local.set({ settings: DEFAULT_SETTINGS });
     await loadSettingsUI();
     setAccordionOpen(themeAccordionBtn, themeAccordionBody, false);
     setAccordionOpen(fontAccordionBtn, fontAccordionBody, false);
     setAccordionOpen(thresholdsAccordionBtn, thresholdsAccordionBody, false);
+    setAccordionOpen(schoolRulesAccordionBtn, schoolRulesAccordionBody, false);
 
     const statusEl = document.getElementById("saveStatus");
-    statusEl.textContent = "Сброшено по умолчанию";
-    setTimeout(() => { statusEl.textContent = ""; }, 2000);
+    if (statusEl) {
+        statusEl.textContent = "Сброшено по умолчанию";
+        setTimeout(() => { statusEl.textContent = ""; }, 2000);
+    }
 });
 
 const startBtn = document.getElementById("startBtn");

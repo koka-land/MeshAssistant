@@ -196,7 +196,12 @@
         contextCheckTimers = [];
 
         const sendCurrent = () => {
-            sendPanelUpdate({ type: "page_context", ...detectJournalContext() });
+            const ctx = detectJournalContext();
+            sendPanelUpdate({ type: "page_context", ...ctx });
+
+            if (ctx.isJournalPage && window.MeshJournalStatic?.syncSchoolMarkRules) {
+                window.MeshJournalStatic.syncSchoolMarkRules(false);
+            }
         };
 
         sendCurrent();
