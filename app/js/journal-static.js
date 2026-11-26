@@ -4,6 +4,7 @@
     const STORAGE_KEY = "schoolMarkRules";
     const CACHE_TTL_MS = 15 * 60 * 1000;
 
+    // Технический резерв исключительно для расчётов в роботах (не показывается в UI как реальные данные)
     const DEFAULT_SCHOOL_MARK_RULES = {
         mark2: 2.0,
         mark3: 2.5,
@@ -16,10 +17,10 @@
         updatedAt: null
     };
 
-    function parseThreshold(val, fallback) {
-        if (val === undefined || val === null || val === "") return fallback;
+    function parseThreshold(val) {
+        if (val === undefined || val === null || val === "") return null;
         const num = Number(String(val).replace(",", "."));
-        return Number.isFinite(num) ? num : fallback;
+        return Number.isFinite(num) ? num : null;
     }
 
     function resolveJournalContextParams() {
@@ -72,39 +73,68 @@
             {};
 
         return {
-            mark2: parseThreshold(src.rounding_limits_for_estimates_for_2, DEFAULT_SCHOOL_MARK_RULES.mark2),
-            mark3: parseThreshold(src.rounding_limits_for_estimates_for_3, DEFAULT_SCHOOL_MARK_RULES.mark3),
-            mark4: parseThreshold(src.rounding_limits_for_estimates_for_4, DEFAULT_SCHOOL_MARK_RULES.mark4),
-            mark5: parseThreshold(src.rounding_limits_for_estimates_for_5, DEFAULT_SCHOOL_MARK_RULES.mark5),
-            creditThreshold: parseThreshold(
-                src.rounding_limits_for_estimates_for_approve,
-                DEFAULT_SCHOOL_MARK_RULES.creditThreshold
-            ),
-            includeInterim: Boolean(src.sign_of_the_use_mark_for_intermediate_attestation),
+            mark2: parseThreshold(src.rounding_limits_for_estimates_for_2),
+            mark3: parseThreshold(src.rounding_limits_for_estimates_for_3),
+            mark4: parseThreshold(src.rounding_limits_for_estimates_for_4),
+            mark5: parseThreshold(src.rounding_limits_for_estimates_for_5),
+            creditThreshold: parseThreshold(src.rounding_limits_for_estimates_for_approve),
+            includeInterim: typeof src.sign_of_the_use_mark_for_intermediate_attestation === "boolean"
+                ? src.sign_of_the_use_mark_for_intermediate_attestation
+                : Boolean(src.sign_of_the_use_mark_for_intermediate_attestation),
             academicYearId: params.academicYearId ?? DEFAULT_SCHOOL_MARK_RULES.academicYearId,
             organizationId: params.organizationId ?? DEFAULT_SCHOOL_MARK_RULES.organizationId,
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            lastError: null
         };
     }
 
     async function getSchoolMarkRules() {
         try {
-            if (!chrome?.storage?.local) return { ...DEFAULT_SCHOOL_MARK_RULES };
+            if (!chrome?.storage?.local) return null;
             const data = await chrome.storage.local.get(STORAGE_KEY);
-            return { ...DEFAULT_SCHOOL_MARK_RULES, ...(data?.[STORAGE_KEY] || {}) };
+            return data?.[STORAGE_KEY] || null;
         } catch {
-            return { ...DEFAULT_SCHOOL_MARK_RULES };
+            return null;
         }
     }
 
+    // Гарантирует числовые значения только там, где они нужны для расчётов в ассистентах
+    async function getSchoolMarkRulesForCalc() {
+        const stored = await getSchoolMarkRules();
+        if (!stored) return { ...DEFAULT_SCHOOL_MARK_RULES };
+
+        return {
+            ...DEFAULT_SCHOOL_MARK_RULES,
+            ...Object.fromEntries(
+                Object.entries(stored).filter(([, v]) => v !== null && v !== undefined)
+            )
+        };
+    }
+
+    async function fetchSchoolMarkRulesByParams(params) {
+        const url =
+            `https://school.mos.ru/api/ej/core/teacher/v1/school_settings/get_setting` +
+            `?academic_year_id=${encodeURIComponent(params.academicYearId)}` +
+            `&organization_id=${encodeURIComponent(params.organizationId)}`;
+
+        const response = await window.MeshCore.apiFetch(url);
+        const normalized = normalizeSchoolMarkRules(response, params);
+        if (chrome?.storage?.local) {
+            await chrome.storage.local.set({ [STORAGE_KEY]: normalized });
+        }
+        return normalized;
+    }
+
     async function syncSchoolMarkRules(force = false) {
+        const params = resolveJournalContextParams();
+        const existing = await getSchoolMarkRules();
+
         try {
-            if (!chrome?.storage?.local || !window.MeshCore?.apiFetch) return null;
+            if (!chrome?.storage?.local || !window.MeshCore?.apiFetch) {
+                return existing;
+            }
 
-            const existing = await getSchoolMarkRules();
-            const params = resolveJournalContextParams();
-
-            if (!force && existing.updatedAt) {
+            if (!force && existing?.updatedAt && !existing?.lastError) {
                 const ageMs = Date.now() - new Date(existing.updatedAt).getTime();
                 const sameContext =
                     existing.academicYearId === params.academicYearId &&
@@ -114,52 +144,81 @@
                 }
             }
 
-            const url =
-                `https://school.mos.ru/api/ej/core/teacher/v1/school_settings/get_setting` +
-                `?academic_year_id=${encodeURIComponent(params.academicYearId)}` +
-                `&organization_id=${encodeURIComponent(params.organizationId)}`;
-
-            const response = await window.MeshCore.apiFetch(url);
-            const normalized = normalizeSchoolMarkRules(response, params);
-            await chrome.storage.local.set({ [STORAGE_KEY]: normalized });
-            return normalized;
+            return await fetchSchoolMarkRulesByParams(params);
         } catch (err) {
+            const msg = String(err?.message || "");
+            if (msg.includes("403") && params.organizationId !== DEFAULT_SCHOOL_MARK_RULES.organizationId) {
+                try {
+                    return await fetchSchoolMarkRulesByParams({
+                        ...params,
+                        organizationId: DEFAULT_SCHOOL_MARK_RULES.organizationId
+                    });
+                } catch {}
+            }
+
             console.warn("[МЭШ Ассистент] Не удалось синхронизировать правила школы:", err);
-            return null;
+
+            const errorState = {
+                ...(existing || {}),
+                updatedAt: existing?.updatedAt || null,
+                lastError: "Что-то пошло не так при загрузке правил школы. Обновите страницу журнала и попробуйте ещё раз."
+            };
+
+            if (chrome?.storage?.local) {
+                await chrome.storage.local.set({ [STORAGE_KEY]: errorState }).catch(() => {});
+            }
+            return errorState;
         }
     }
 
     function formatThreshold(val) {
+        if (val === null || val === undefined || val === "") return "—";
         const n = Number(val);
         return Number.isFinite(n) ? n.toFixed(2) : "—";
     }
 
     function renderSchoolMarkRulesToDom(rules, elements = {}) {
-        const r = { ...DEFAULT_SCHOOL_MARK_RULES, ...(rules || {}) };
+        const hasLoadedData = Boolean(rules && rules.updatedAt);
 
         const setText = (el, text) => {
             if (el) el.textContent = text;
         };
 
-        setText(elements.mark5El, formatThreshold(r.mark5));
-        setText(elements.mark4El, formatThreshold(r.mark4));
-        setText(elements.mark3El, formatThreshold(r.mark3));
-        setText(elements.mark2El, formatThreshold(r.mark2));
-        setText(elements.creditEl, formatThreshold(r.creditThreshold));
-        setText(elements.interimEl, r.includeInterim ? "Учитывается" : "Не учитывается");
+        if (!hasLoadedData) {
+            setText(elements.mark5El, "—");
+            setText(elements.mark4El, "—");
+            setText(elements.mark3El, "—");
+            setText(elements.mark2El, "—");
+            setText(elements.creditEl, "—");
+            setText(elements.interimEl, "—");
+
+            if (elements.metaEl) {
+                elements.metaEl.textContent =
+                    rules?.lastError ||
+                    "Данные ещё не загружены. Откройте или обновите страницу журнала МЭШ и попробуйте ещё раз.";
+            }
+            return;
+        }
+
+        setText(elements.mark5El, formatThreshold(rules.mark5));
+        setText(elements.mark4El, formatThreshold(rules.mark4));
+        setText(elements.mark3El, formatThreshold(rules.mark3));
+        setText(elements.mark2El, formatThreshold(rules.mark2));
+        setText(elements.creditEl, formatThreshold(rules.creditThreshold));
+        setText(elements.interimEl, rules.includeInterim ? "Учитывается" : "Не учитывается");
 
         if (elements.metaEl) {
-            const scope = `год ID ${r.academicYearId}, ОО ID ${r.organizationId}`;
-            if (r.updatedAt) {
-                const stamp = new Date(r.updatedAt).toLocaleString("ru-RU", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit"
-                });
-                elements.metaEl.textContent = `Информация для ознакомления, взята из настроек журнала на текущий учебный год (обновлено ${stamp}).`;
+            const stamp = new Date(rules.updatedAt).toLocaleString("ru-RU", {
+                day: "2-digit",
+                month: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+
+            if (rules.lastError) {
+                elements.metaEl.textContent = `Не удалось обновить данные — показаны сохранённые от ${stamp}. Обновите страницу журнала и попробуйте ещё раз.`;
             } else {
-                elements.metaEl.textContent = "Информация для ознакомления, взята из настроек журнала на текущий учебный год.";
+                elements.metaEl.textContent = `Информация для ознакомления, взята из настроек журнала на текущий учебный год (обновлено ${stamp}).`;
             }
         }
     }
@@ -170,6 +229,7 @@
         resolveJournalContextParams,
         normalizeSchoolMarkRules,
         getSchoolMarkRules,
+        getSchoolMarkRulesForCalc,
         syncSchoolMarkRules,
         formatThreshold,
         renderSchoolMarkRulesToDom

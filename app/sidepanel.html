@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/panel-base.css">
     <link rel="stylesheet" href="css/controls.css">
     <link rel="stylesheet" href="css/assistant-card.css">
+    <link rel="stylesheet" href="css/metrics.css">
     <link rel="stylesheet" href="css/settings.css">
 </head>
 <body>
@@ -72,6 +73,47 @@
                 </button>
             </div>
         </div>
+
+        <div id="metricsDashboardSection" class="metrics-dashboard" style="display:none;">
+    <div class="card metrics-accordion-card">
+        <button
+            type="button"
+            id="metricsAccordionBtn"
+            class="accordion-trigger"
+            aria-expanded="false"
+            aria-controls="metricsAccordionBody"
+        >
+            <span>Показатели эффективности</span>
+            <span class="accordion-chevron">▾</span>
+        </button>
+
+        <div id="metricsAccordionBody" class="metrics-body">
+            <div class="metrics-toolbar">
+                <div class="metrics-period-group">
+                    <select id="metricsPeriodSelect" class="metrics-period-select" aria-label="Выбор периода"></select>
+                    <button
+                        type="button"
+                        id="metricsRefreshBtn"
+                        class="metrics-refresh-btn"
+                        title="Обновить показатели"
+                        aria-label="Обновить показатели"
+                    >↻</button>
+                </div>
+            </div>
+
+            <div id="metricsMetaLine" class="metrics-meta-line"></div>
+            <div id="metricsStateBox" class="metrics-state-box" style="display:none;"></div>
+
+            <div class="metrics-section-caption">Обязательные</div>
+            <div id="metricsMandatoryGrid" class="metrics-grid-3x2"></div>
+
+            <div class="metrics-section-caption">Дополнительные</div>
+            <div id="metricsAdditionalGrid" class="metrics-grid-3x2"></div>
+
+            <div id="metricsBonusBox"></div>
+        </div>
+    </div>
+</div>
 
         <div id="assistantsAccordion"></div>
 
@@ -423,6 +465,9 @@
 
     <script src="assistant-card.js"></script>
     <script src="js/journal-static.js"></script>
+    <script src="js/teacher-metrics.js"></script>
+    <script src="js/assistants/metrics.js"></script>
+    <script src="js/metrics-ui.js"></script>
     <script src="sidepanel.js"></script>
 </body>
 </html>

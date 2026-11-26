@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "МЭШ Ассистент",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Автоматизация работы с электронным журналом МЭШ",
   "permissions": [
     "sidePanel",
@@ -37,11 +37,12 @@
     {
       "matches": ["https://school.mos.ru/*"],
       "js": [
-        "js/journal-static.js",
         "js/content-core.js",
+        "js/teacher-metrics.js",
+        "js/journal-static.js",
         "js/assistants/skills.js",
         "content.js"
-      ],
+],
       "run_at": "document_idle"
     }
   ]

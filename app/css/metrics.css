@@ -1,0 +1,217 @@
+.metrics-accordion-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.metrics-body {
+    display: none;
+    padding: 0 12px 12px;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.metrics-body.is-open {
+    display: flex;
+}
+
+.metrics-toolbar {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    padding-top: 2px;
+}
+
+.metrics-period-select {
+    min-width: 0;
+    flex: 1;
+    background: var(--surface-alt, var(--surface));
+    color: var(--text);
+    border: 1px solid var(--border, rgba(128, 128, 128, 0.22));
+    border-radius: 10px;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.metrics-refresh-btn {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    border: 1px solid var(--border, rgba(128, 128, 128, 0.22));
+    background: var(--surface-alt, var(--surface));
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, transform 0.2s ease;
+}
+
+.metrics-refresh-btn:hover {
+    background: var(--primary-soft, rgba(26, 115, 232, 0.14));
+}
+
+.metrics-refresh-btn.is-loading {
+    animation: metricsSpin 0.8s linear infinite;
+}
+
+@keyframes metricsSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.metrics-section-caption {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted, var(--text));
+    opacity: 0.78;
+}
+
+.metrics-grid-3x2 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    align-items: center;
+    justify-items: center;
+}
+
+.metric-chart-card {
+    --ring-color: var(--danger, #e03131);
+    --threshold-color: var(--accent, var(--primary));
+    background: transparent;
+    border: none;
+    padding: 2px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.metric-chart-card.is-done {
+    --ring-color: var(--success, #2f9e44);
+}
+
+.metric-ring-box {
+    position: relative;
+    width: 88px;
+    height: 88px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.metric-ring-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.metric-outer-track,
+.metric-inner-track {
+    fill: none;
+    stroke: var(--border, rgba(128, 128, 128, 0.22));
+}
+
+.metric-outer-track {
+    stroke-width: 4.5;
+}
+
+.metric-inner-track {
+    stroke-width: 3;
+    opacity: 0.75;
+}
+
+.metric-outer-fill {
+    fill: none;
+    stroke: var(--ring-color);
+    stroke-width: 4.5;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    transition: stroke-dashoffset 0.25s ease;
+}
+
+.metric-inner-fill {
+    fill: none;
+    stroke: var(--threshold-color);
+    stroke-width: 3;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    transition: stroke-dashoffset 0.25s ease;
+}
+
+.metric-ring-center {
+    position: relative;
+    width: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.05;
+    gap: 2px;
+}
+
+.metric-ring-title {
+    font-size: 8.5px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--text-muted, var(--text));
+    opacity: 0.86;
+    word-break: break-word;
+}
+
+.metric-actual-val {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.metric-threshold-val {
+    font-size: 8.5px;
+    font-weight: 600;
+    color: var(--text-muted, var(--text));
+    opacity: 0.72;
+}
+
+.metrics-bonus-box {
+    background: var(--surface-alt, var(--surface));
+    border: 1px solid var(--border, rgba(128, 128, 128, 0.2));
+    border-radius: 12px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.metrics-bonus-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.metrics-bonus-sum {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+.metrics-state-box {
+    font-size: 11.5px;
+    line-height: 1.4;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--surface-alt, var(--surface));
+    border: 1px solid var(--border, rgba(128, 128, 128, 0.16));
+    color: var(--text);
+}

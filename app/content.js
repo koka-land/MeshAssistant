@@ -170,8 +170,11 @@
             reportJournalContext(true);
             sendResponse?.(ctx);
             return true;
-        }
+        } else if (action === "sync_teacher_metrics") {
+            window.MeshTeacherMetrics?.syncTeacherMetrics?.(Boolean(data.force));
+}
     });
 
     reportJournalContext(true);
+    window.MeshTeacherMetrics?.syncTeacherMetrics?.(false);
 })();

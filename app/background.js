@@ -130,8 +130,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 await chrome.scripting.executeScript({
                     target: { tabId: tab.id },
                     files: [
-                        "js/journal-static.js",
                         "js/content-core.js",
+                        "js/teacher-metrics.js",
+                        "js/journal-static.js",
                         "js/assistants/skills.js",
                         "content.js"
                     ]

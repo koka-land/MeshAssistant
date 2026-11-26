@@ -218,6 +218,15 @@ async function sendMessageToBackground(payload) {
     });
 }
 
+window.MeshMetricsUI?.initMetricsUI({
+    onRefreshRequest: (force = false) => {
+        sendMessageToBackground({
+            target: "content",
+            payload: { action: "sync_teacher_metrics", force: Boolean(force) }
+        });
+    }
+});
+
 // Создаём карточку-аккордеон для ассистента «Учебные умения»
 const skillsCard = typeof createAssistantCard === "function"
     ? createAssistantCard({
@@ -260,23 +269,51 @@ if (assistantsAccordion && skillsCard) {
     }
 }
 
-function applyClassJournalState(isClassJournal) {
-    const normalized = Boolean(isClassJournal);
-    lastAppliedClassJournal = normalized;
+async function getActiveTabUrl() {
+    try {
+        const windowId = currentWindowId ?? await currentWindowIdPromise;
+        const [tab] = await chrome.tabs.query({ active: true, windowId });
+        return tab?.url || "";
+    } catch {
+        return "";
+    }
+}
 
-    if (normalized) {
+async function applyPageAssistantsState({ isClassJournal, tabUrl = "" }) {
+    const normalizedJournal = Boolean(isClassJournal);
+    lastAppliedClassJournal = normalizedJournal;
+
+    const resolvedUrl = tabUrl || await getActiveTabUrl();
+    const isMesh = normalizedJournal || (window.MeshMetricsUI?.isMeshUrl?.(resolvedUrl) ?? false);
+    const assistantsCount = isMesh ? (normalizedJournal ? 2 : 1) : 0;
+
+    if (normalizedJournal) {
         if (notClassJournalHint) notClassJournalHint.style.display = "none";
         if (assistantsAccordion) assistantsAccordion.style.display = "block";
+        // Если активны оба ассистента — сворачиваем «Учебные умения», пока задача не запущена
+        if (!isTaskRunning) {
+            skillsCard?.setCollapsed(true);
+        }
     } else {
-        if (notClassJournalHint) notClassJournalHint.style.display = "block";
         if (assistantsAccordion) assistantsAccordion.style.display = "none";
         if (!isTaskRunning) {
             skillsCard?.hideRunPanel();
         }
+        // На страницах МЭШ работает ассистент показателей, поэтому общую заглушку «откройте МЭШ» скрываем
+        if (notClassJournalHint) {
+            notClassJournalHint.style.display = isMesh ? "none" : "block";
+        }
     }
+
+    window.MeshMetricsUI?.setPageContext?.({
+        url: resolvedUrl,
+        isMesh,
+        assistantsCount,
+        forceSync: false
+    });
 }
 
-function requestPageContextWithRetry(retriesLeft = 3) {
+function requestPageContextWithRetry(retriesLeft = 3, knownUrl = "") {
     clearTimeout(contextRetryTimer);
 
     sendMessageToBackground({
@@ -284,23 +321,26 @@ function requestPageContextWithRetry(retriesLeft = 3) {
         payload: { action: "check_context" }
     }).then((res) => {
         if (res && typeof res.isClassJournal === "boolean") {
-            applyClassJournalState(res.isClassJournal);
+            applyPageAssistantsState({
+                isClassJournal: res.isClassJournal,
+                tabUrl: res.url || knownUrl
+            });
             return;
         }
         if (retriesLeft > 0) {
             contextRetryTimer = setTimeout(() => {
-                requestPageContextWithRetry(retriesLeft - 1);
+                requestPageContextWithRetry(retriesLeft - 1, knownUrl);
             }, 700);
         } else {
-            applyClassJournalState(false);
+            applyPageAssistantsState({ isClassJournal: false, tabUrl: knownUrl });
         }
     }).catch(() => {
         if (retriesLeft > 0) {
             contextRetryTimer = setTimeout(() => {
-                requestPageContextWithRetry(retriesLeft - 1);
+                requestPageContextWithRetry(retriesLeft - 1, knownUrl);
             }, 700);
         } else {
-            applyClassJournalState(false);
+            applyPageAssistantsState({ isClassJournal: false, tabUrl: knownUrl });
         }
     });
 }
@@ -420,7 +460,7 @@ startBtn?.addEventListener("click", () => {
     const mode = document.querySelector('input[name="mode"]:checked')?.value || "background";
     const forceRecalc = document.getElementById("forceRecalc").checked;
     const processAll = document.getElementById("processAll").checked;
-    const assistantId = "skills"; // Пока у нас один ассистент
+    const assistantId = "skills";
 
     isTaskPaused = false;
     const card = activeAssistants[assistantId];
@@ -464,27 +504,29 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     // 1. Обработка контекста страницы
     if (msg.type === "page_context") {
         clearTimeout(contextRetryTimer);
+        const tabUrl = msg.url || sender?.tab?.url || "";
         if (msg.isClassJournal) {
-            applyClassJournalState(true);
+            applyPageAssistantsState({ isClassJournal: true, tabUrl });
         } else if (msg.isJournalPage) {
             contextRetryTimer = setTimeout(() => {
-                requestPageContextWithRetry(1);
+                requestPageContextWithRetry(1, tabUrl);
             }, 800);
             if (lastAppliedClassJournal === null) {
-                applyClassJournalState(false);
+                applyPageAssistantsState({ isClassJournal: false, tabUrl });
             }
         } else {
-            applyClassJournalState(false);
+            applyPageAssistantsState({ isClassJournal: false, tabUrl });
         }
         return;
     }
 
     if (msg.type === "context_changed") {
         clearTimeout(contextRetryTimer);
+        const tabUrl = msg.url || sender?.tab?.url || "";
         if (!msg.isJournal) {
-            applyClassJournalState(false);
+            applyPageAssistantsState({ isClassJournal: false, tabUrl });
         } else {
-            requestPageContextWithRetry(3);
+            requestPageContextWithRetry(3, tabUrl);
         }
         return;
     }
