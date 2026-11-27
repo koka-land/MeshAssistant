@@ -29,12 +29,12 @@
     </div>
 
     <div class="tabs">
-        <button class="tab-btn active" data-tab="skills">Ассистент</button>
+        <button class="tab-btn active" data-tab="skills">Ассистенты</button>
         <button class="tab-btn" data-tab="settings">Настройки</button>
         <button type="button" class="tab-help-btn" data-open-guide title="Путеводитель" aria-label="Открыть путеводитель">?</button>
     </div>
 
-    <!-- ВКЛАДКА 1: АССИСТЕНТ / БЫСТРЫЙ ДОСТУП -->
+    <!-- ВКЛАДКА 1: АССИСТЕНТЫ / БЫСТРЫЙ ДОСТУП -->
     <div id="tab-skills" class="tab-pane active">
         <div id="notClassJournalHint" style="display:none;">
             <div class="empty-state">
@@ -74,51 +74,68 @@
             </div>
         </div>
 
-        <div id="metricsDashboardSection" class="metrics-dashboard" style="display:none;">
-    <div class="card metrics-accordion-card">
-        <button
-            type="button"
-            id="metricsAccordionBtn"
-            class="accordion-trigger"
-            aria-expanded="false"
-            aria-controls="metricsAccordionBody"
-        >
-            <span>Показатели эффективности</span>
-            <span class="accordion-chevron">▾</span>
-        </button>
+        <div id="assistantsSectionLabel" class="section-label" style="display:none;">Инструменты</div>
 
-        <div id="metricsAccordionBody" class="metrics-body">
-            <div class="metrics-toolbar">
-                <div class="metrics-period-group">
-                    <select id="metricsPeriodSelect" class="metrics-period-select" aria-label="Выбор периода"></select>
-                    <button
-                        type="button"
-                        id="metricsRefreshBtn"
-                        class="metrics-refresh-btn"
-                        title="Обновить показатели"
-                        aria-label="Обновить показатели"
-                    >↻</button>
+        <div id="metricsDashboardSection" class="metrics-dashboard" style="display:none;">
+            <div class="card">
+                <button
+                    type="button"
+                    id="metricsAccordionBtn"
+                    class="accordion-trigger"
+                    aria-expanded="false"
+                    aria-controls="metricsAccordionBody"
+                >
+                    <span>Показатели эффективности</span>
+                    <span class="accordion-chevron">▾</span>
+                </button>
+
+                <div id="metricsAccordionBody" class="metrics-body">
+                    <div class="metrics-toolbar">
+                        <div id="metricsPeriodDropdown" class="custom-select">
+                            <button
+                                type="button"
+                                id="metricsPeriodBtn"
+                                class="custom-select-trigger"
+                                aria-haspopup="listbox"
+                                aria-expanded="false"
+                            >
+                                <span id="metricsPeriodLabel" class="custom-select-value">Период</span>
+                                <span class="custom-select-arrow" aria-hidden="true">▾</span>
+                            </button>
+                            <div
+                                id="metricsPeriodMenu"
+                                class="custom-select-menu"
+                                role="listbox"
+                                aria-label="Выбор периода"
+                            ></div>
+                        </div>
+                        <button
+                            type="button"
+                            id="metricsRefreshBtn"
+                            class="metrics-refresh-btn"
+                            title="Обновить показатели"
+                            aria-label="Обновить показатели"
+                        >↻</button>
+                    </div>
+
+                    <div id="metricsMetaLine" class="metrics-meta-line"></div>
+                    <div id="metricsStateBox" class="metrics-state-box" style="display:none;"></div>
+
+                    <div class="metrics-section-caption">Обязательные</div>
+                    <div id="metricsMandatoryGrid" class="metrics-grid-3x2"></div>
+
+                    <div class="metrics-section-caption">Дополнительные</div>
+                    <div id="metricsAdditionalGrid" class="metrics-grid-3x2"></div>
+
+                    <div id="metricsBonusBox"></div>
                 </div>
             </div>
-
-            <div id="metricsMetaLine" class="metrics-meta-line"></div>
-            <div id="metricsStateBox" class="metrics-state-box" style="display:none;"></div>
-
-            <div class="metrics-section-caption">Обязательные</div>
-            <div id="metricsMandatoryGrid" class="metrics-grid-3x2"></div>
-
-            <div class="metrics-section-caption">Дополнительные</div>
-            <div id="metricsAdditionalGrid" class="metrics-grid-3x2"></div>
-
-            <div id="metricsBonusBox"></div>
         </div>
-    </div>
-</div>
 
         <div id="assistantsAccordion"></div>
 
         <div id="skillsControls">
-            <div class="section-label">Режим работы</div>
+            <div class="skill-category-title">Режим работы</div>
             <div class="mode-list">
                 <label class="mode-card">
                     <input type="radio" name="mode" value="background" checked>
@@ -238,8 +255,6 @@
                 </div>
             </div>
         </div>
-
-        <hr class="settings-divider">
 
         <div class="section-label">Настройки ассистента</div>
 
@@ -428,9 +443,26 @@
 
             <div class="guide-section">
                 <div class="guide-section-title">Доступные ассистенты</div>
-                <div class="guide-item">
-                    <strong>Учебные умения</strong>
-                    <p>Откройте журнал любого класса на <code>school.mos.ru</code>. Доступны два режима: быстрый фоновый (через API) и наглядный в реальном времени.</p>
+                <div class="guide-assistants-list">
+                    <details class="guide-changelog">
+                        <summary class="guide-changelog-trigger">
+                            <span>Показатели эффективности</span>
+                            <span class="guide-changelog-chevron">▾</span>
+                        </summary>
+                        <div class="guide-changelog-body">
+                            <p>Работает на любой странице <code>school.mos.ru</code>. Показывает обязательные и дополнительные показатели учителя, позволяет переключать расчётные периоды и рассчитывает примерную надбавку.</p>
+                        </div>
+                    </details>
+
+                    <details class="guide-changelog">
+                        <summary class="guide-changelog-trigger">
+                            <span>Учебные умения</span>
+                            <span class="guide-changelog-chevron">▾</span>
+                        </summary>
+                        <div class="guide-changelog-body">
+                            <p>Откройте журнал любого класса на <code>school.mos.ru</code>. Доступны два режима: быстрый фоновый (через API) и наглядный в реальном времени.</p>
+                        </div>
+                    </details>
                 </div>
             </div>
 
@@ -448,11 +480,28 @@
                     <div class="guide-release">
                         <div class="guide-release-title">Текущее обновление</div>
                         <ul class="guide-release-list">
-                            <li>Обновлён интерфейс: единые отступы, новые тумблеры и плавные переходы.</li>
-                            <li>Добавлен путеводитель по ассистентам и быстрый доступ к справке (?).</li>
-                            <li>Улучшена стабильность работы при открытии нескольких окон браузера.</li>
+                            <li>Добавлен блок показателей эффективности учителя на school.mos.ru с наглядными полукруговыми шкалами порога и факта.</li>
+                            <li>Появился выбор расчётного периода, кнопка быстрого обновления данных и расчёт примерной надбавки.</li>
+                            <li>Выровнены отступы, скругления и шрифты во всех вкладках, добавлен кастомный выпадающий список в стиле панели.</li>
                         </ul>
                     </div>
+
+                    <details class="guide-changelog guide-changelog-archive">
+                        <summary class="guide-changelog-trigger">
+                            <span>История версий</span>
+                            <span class="guide-changelog-chevron">▾</span>
+                        </summary>
+                        <div class="guide-changelog-body">
+                            <div class="guide-release">
+                                <div class="guide-release-title">Предыдущее обновление</div>
+                                <ul class="guide-release-list">
+                                    <li>Обновлён интерфейс: единые отступы, новые тумблеры и плавные переходы.</li>
+                                    <li>Добавлен путеводитель по ассистентам и быстрый доступ к справке (?).</li>
+                                    <li>Улучшена стабильность работы при открытии нескольких окон браузера.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </details>
                 </div>
             </details>
         </div>

@@ -7,6 +7,7 @@
     let userToggledAccordion = false;
     let activeAssistantsCount = 1;
     let refreshCallback = null;
+    let pendingAnimateOnStorage = false;
 
     function isMeshUrl(url = "") {
         return typeof url === "string" && url.startsWith("https://school.mos.ru/");
@@ -31,47 +32,54 @@
         return `${num.toLocaleString("ru-RU")} ₽`;
     }
 
-    function renderRingSvg(arcPct, thresholdPct) {
-        const size = 88;
-        const center = size / 2;
+    function setDropdownOpen(open) {
+        const dropdown = document.getElementById("metricsPeriodDropdown");
+        const btn = document.getElementById("metricsPeriodBtn");
+        if (!dropdown || !btn) return;
 
-        const outerR = 39;
-        const outerCirc = 2 * Math.PI * outerR;
-        const clampedOuter = Math.max(0, Math.min(100, Number(arcPct) || 0));
-        const outerOffset = outerCirc - (clampedOuter / 100) * outerCirc;
+        const nextState = Boolean(open);
+        dropdown.classList.toggle("is-open", nextState);
+        btn.setAttribute("aria-expanded", String(nextState));
+    }
 
-        const innerR = 32;
-        const innerCirc = 2 * Math.PI * innerR;
-        const hasThreshold = typeof thresholdPct === "number" && !Number.isNaN(thresholdPct);
-        const clampedInner = hasThreshold ? Math.max(0, Math.min(100, thresholdPct)) : 0;
-        const innerOffset = innerCirc - (clampedInner / 100) * innerCirc;
+    function renderSemiGaugeSvg(actualPct, targetPct) {
+        const r = 38;
+        const xLeft = 6;
+        const xRight = 82;
+        const yBase = 46;
+        const arcPath = `M ${xLeft} ${yBase} A ${r} ${r} 0 0 1 ${xRight} ${yBase}`;
+        const arcLen = Math.PI * r;
 
-        const innerArcSvg = hasThreshold
+        const clampedActual = Math.max(0, Math.min(100, Number(actualPct) || 0));
+        const actualOffset = arcLen - (clampedActual / 100) * arcLen;
+
+        const hasTarget = typeof targetPct === "number" && !Number.isNaN(targetPct);
+        const clampedTarget = hasTarget ? Math.max(0, Math.min(100, targetPct)) : 0;
+        const targetOffset = arcLen - (clampedTarget / 100) * arcLen;
+
+        const targetArcSvg = hasTarget
             ? `
-                <circle class="metric-inner-track" cx="${center}" cy="${center}" r="${innerR}"></circle>
-                <circle
-                    class="metric-inner-fill"
-                    cx="${center}"
-                    cy="${center}"
-                    r="${innerR}"
-                    stroke-dasharray="${innerCirc.toFixed(2)}"
-                    stroke-dashoffset="${innerOffset.toFixed(2)}"
-                ></circle>
+                <path
+                    class="metric-semi-target"
+                    d="${arcPath}"
+                    style="--arc-len:${arcLen.toFixed(2)}"
+                    stroke-dasharray="${arcLen.toFixed(2)}"
+                    stroke-dashoffset="${targetOffset.toFixed(2)}"
+                ></path>
             `
             : "";
 
         return `
-            <svg class="metric-ring-svg" viewBox="0 0 ${size} ${size}" aria-hidden="true">
-                <circle class="metric-outer-track" cx="${center}" cy="${center}" r="${outerR}"></circle>
-                <circle
-                    class="metric-outer-fill"
-                    cx="${center}"
-                    cy="${center}"
-                    r="${outerR}"
-                    stroke-dasharray="${outerCirc.toFixed(2)}"
-                    stroke-dashoffset="${outerOffset.toFixed(2)}"
-                ></circle>
-                ${innerArcSvg}
+            <svg class="metric-semi-svg" viewBox="0 0 88 52" aria-hidden="true">
+                <path class="metric-semi-track" d="${arcPath}"></path>
+                ${targetArcSvg}
+                <path
+                    class="metric-semi-actual"
+                    d="${arcPath}"
+                    style="--arc-len:${arcLen.toFixed(2)}"
+                    stroke-dasharray="${arcLen.toFixed(2)}"
+                    stroke-dashoffset="${actualOffset.toFixed(2)}"
+                ></path>
             </svg>
         `;
     }
@@ -79,14 +87,14 @@
     function renderChartCard(card) {
         return `
             <div class="metric-chart-card ${card.success ? "is-done" : ""}">
-                <div class="metric-ring-box">
-                    ${renderRingSvg(card.arcPct, card.dotPct)}
-                    <div class="metric-ring-center">
-                        <span class="metric-ring-title">${card.title}</span>
+                <div class="metric-semi-box">
+                    ${renderSemiGaugeSvg(card.arcPct, card.dotPct)}
+                    <div class="metric-semi-values">
                         <span class="metric-actual-val">${card.actualText}</span>
                         ${card.thresholdText ? `<span class="metric-threshold-val">${card.thresholdText}</span>` : ""}
                     </div>
                 </div>
+                <div class="metric-card-caption">${card.title}</div>
             </div>
         `;
     }
@@ -101,16 +109,29 @@
         `;
     }
 
+    function triggerRingsSequenceAnimation(grids) {
+        const activeGrids = grids.filter(Boolean);
+        if (!activeGrids.length) return;
+
+        activeGrids.forEach(grid => grid.classList.add("is-animating"));
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                activeGrids.forEach(grid => grid.classList.remove("is-animating"));
+            });
+        });
+    }
+
     function applyAccordionState() {
         const sectionEl = document.getElementById("metricsDashboardSection");
         const triggerBtn = document.getElementById("metricsAccordionBtn");
         const bodyEl = document.getElementById("metricsAccordionBody");
 
-        if (!sectionEl) return;
+        if (!sectionEl) return false;
         sectionEl.style.display = isOnMesh ? "" : "none";
 
-        if (!isOnMesh || !triggerBtn || !bodyEl) return;
+        if (!isOnMesh || !triggerBtn || !bodyEl) return false;
 
+        const wasOpen = isOpen;
         if (!userToggledAccordion) {
             isOpen = activeAssistantsCount <= 1;
         }
@@ -122,21 +143,36 @@
         if (chevron) {
             chevron.textContent = isOpen ? "▴" : "▾";
         }
+
+        if (!isOpen) {
+            setDropdownOpen(false);
+        }
+
+        return !wasOpen && isOpen;
     }
 
     function setAccordionOpen(open, { byUser = false } = {}) {
         if (byUser) {
             userToggledAccordion = true;
         }
+        const becameOpen = !isOpen && Boolean(open);
         isOpen = Boolean(open);
         applyAccordionState();
+
+        if (becameOpen) {
+            triggerRingsSequenceAnimation([
+                document.getElementById("metricsMandatoryGrid"),
+                document.getElementById("metricsAdditionalGrid")
+            ]);
+        }
     }
 
-    async function renderDashboard(overrideRawState = null) {
-        applyAccordionState();
+    async function renderDashboard(overrideRawState = null, { animate = false } = {}) {
+        const becameOpen = applyAccordionState();
         if (!isOnMesh) return;
 
-        const periodSelect = document.getElementById("metricsPeriodSelect");
+        const periodLabel = document.getElementById("metricsPeriodLabel");
+        const periodMenu = document.getElementById("metricsPeriodMenu");
         const mandatoryGrid = document.getElementById("metricsMandatoryGrid");
         const additionalGrid = document.getElementById("metricsAdditionalGrid");
         const bonusContainer = document.getElementById("metricsBonusBox");
@@ -147,9 +183,9 @@
         const model = await window.MeshMetricsAssistant.getDashboardModel(overrideRawState);
 
         if (!model.hasData) {
-            if (periodSelect) {
-                periodSelect.innerHTML = `<option value="">Период недоступен</option>`;
-            }
+            if (periodLabel) periodLabel.textContent = "Период недоступен";
+            if (periodMenu) periodMenu.innerHTML = "";
+            setDropdownOpen(false);
             mandatoryGrid.innerHTML = "";
             additionalGrid.innerHTML = "";
             if (bonusContainer) bonusContainer.innerHTML = "";
@@ -162,11 +198,21 @@
             return;
         }
 
-        if (periodSelect) {
-            periodSelect.innerHTML = model.periods
-                .map((p, idx) => (
-                    `<option value="${idx}" ${idx === model.selectedPeriodIndex ? "selected" : ""}>${formatPeriodLabel(p)}</option>`
-                ))
+        const activePeriod = model.periods[model.selectedPeriodIndex] || model.periods[0];
+        if (periodLabel) {
+            periodLabel.textContent = formatPeriodLabel(activePeriod);
+        }
+        if (periodMenu) {
+            periodMenu.innerHTML = model.periods
+                .map((p, idx) => `
+                    <button
+                        type="button"
+                        class="custom-select-option ${idx === model.selectedPeriodIndex ? "is-selected" : ""}"
+                        role="option"
+                        aria-selected="${idx === model.selectedPeriodIndex}"
+                        data-period-index="${idx}"
+                    >${formatPeriodLabel(p)}</button>
+                `)
                 .join("");
         }
 
@@ -175,10 +221,20 @@
             stateBox.style.display = model.lastError ? "block" : "none";
         }
 
+        const shouldAnimate = Boolean(animate || becameOpen) && isOpen;
+        if (shouldAnimate) {
+            mandatoryGrid.classList.add("is-animating");
+            additionalGrid.classList.add("is-animating");
+        }
+
         mandatoryGrid.innerHTML = model.mandatoryCards.map(renderChartCard).join("");
         additionalGrid.innerHTML = model.additionalCards.map(renderChartCard).join("");
         if (bonusContainer) {
             bonusContainer.innerHTML = renderBonusBlock(model.allowance);
+        }
+
+        if (shouldAnimate) {
+            triggerRingsSequenceAnimation([mandatoryGrid, additionalGrid]);
         }
     }
 
@@ -202,8 +258,8 @@
             userToggledAccordion = false;
         }
 
-        applyAccordionState();
-        renderDashboard();
+        const becameOpen = applyAccordionState();
+        renderDashboard(null, { animate: becameOpen });
         refreshCallback?.(Boolean(forceSync));
     }
 
@@ -217,20 +273,44 @@
         isInitialized = true;
 
         const accordionBtn = document.getElementById("metricsAccordionBtn");
-        const periodSelect = document.getElementById("metricsPeriodSelect");
+        const periodBtn = document.getElementById("metricsPeriodBtn");
+        const periodMenu = document.getElementById("metricsPeriodMenu");
         const refreshBtn = document.getElementById("metricsRefreshBtn");
 
         accordionBtn?.addEventListener("click", () => {
             setAccordionOpen(!isOpen, { byUser: true });
         });
 
-        periodSelect?.addEventListener("change", async (e) => {
-            await window.MeshTeacherMetrics?.setSelectedPeriodIndex?.(Number(e.target.value));
-            renderDashboard();
+        periodBtn?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const isExpanded = periodBtn.getAttribute("aria-expanded") === "true";
+            setDropdownOpen(!isExpanded);
+        });
+
+        periodMenu?.addEventListener("click", async (e) => {
+            const option = e.target.closest(".custom-select-option");
+            if (!option) return;
+            setDropdownOpen(false);
+            await window.MeshTeacherMetrics?.setSelectedPeriodIndex?.(Number(option.dataset.periodIndex));
+            renderDashboard(null, { animate: true });
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest("#metricsPeriodDropdown")) {
+                setDropdownOpen(false);
+            }
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                setDropdownOpen(false);
+            }
         });
 
         refreshBtn?.addEventListener("click", async () => {
+            setDropdownOpen(false);
             refreshBtn.classList.add("is-loading");
+            pendingAnimateOnStorage = true;
             try {
                 if (refreshCallback) {
                     await refreshCallback(true);
@@ -238,14 +318,19 @@
                     await window.MeshMetricsAssistant.refreshMetrics(true);
                 }
             } finally {
-                refreshBtn.classList.remove("is-loading");
+                setTimeout(() => {
+                    refreshBtn.classList.remove("is-loading");
+                    pendingAnimateOnStorage = false;
+                }, 600);
             }
         });
 
         if (chrome?.storage?.onChanged) {
             chrome.storage.onChanged.addListener((changes, area) => {
                 if (area === "local" && changes.teacherMetrics) {
-                    renderDashboard(changes.teacherMetrics.newValue);
+                    const shouldAnimate = pendingAnimateOnStorage;
+                    pendingAnimateOnStorage = false;
+                    renderDashboard(changes.teacherMetrics.newValue, { animate: shouldAnimate });
                 }
             });
         }

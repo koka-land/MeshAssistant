@@ -71,16 +71,11 @@
         }
 
         const val = parseNumber(entry.value);
-        const goal = parseNumber(entry.targetValue ?? entry.targetValueForView);
-
-        if (val !== null && goal !== null && goal > 0) {
-            return Math.max(0, Math.min(100, Math.round((val / goal) * 100)));
+        if (val !== null) {
+            return Math.max(0, Math.min(100, Math.round(val)));
         }
         if (typeof entry.targetProgress === "number" && !Number.isNaN(entry.targetProgress)) {
             return Math.max(0, Math.min(100, Math.round(entry.targetProgress)));
-        }
-        if (val !== null) {
-            return Math.max(0, Math.min(100, Math.round(val)));
         }
         return entry.success ? 100 : 0;
     }
@@ -91,10 +86,7 @@
         const targetRaw = entry?.targetValue ?? entry?.targetValueForView;
         const goal = parseNumber(targetRaw);
         if (goal === null) return null;
-        if (String(targetRaw).trim().endsWith("%")) {
-            return Math.max(0, Math.min(100, Math.round(goal)));
-        }
-        return goal <= 100 ? Math.max(0, Math.min(100, Math.round(goal))) : 100;
+        return Math.max(0, Math.min(100, Math.round(goal)));
     }
 
     function getScansCompletedCount(p3Item) {

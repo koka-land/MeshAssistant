@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const notClassJournalHint = document.getElementById("notClassJournalHint");
+const assistantsSectionLabel = document.getElementById("assistantsSectionLabel");
 const assistantsAccordion = document.getElementById("assistantsAccordion");
 const skillsControls = document.getElementById("skillsControls");
 const fontScaleSlider = document.getElementById("fontScaleSlider");
@@ -232,7 +233,7 @@ const skillsCard = typeof createAssistantCard === "function"
     ? createAssistantCard({
         id: "skills",
         title: "Учебные умения",
-        open: true,
+        open: false,
         onTogglePause: (nextPaused) => {
             isTaskPaused = Boolean(nextPaused);
             const action = isTaskPaused ? "pause" : "resume";
@@ -287,12 +288,16 @@ async function applyPageAssistantsState({ isClassJournal, tabUrl = "" }) {
     const isMesh = normalizedJournal || (window.MeshMetricsUI?.isMeshUrl?.(resolvedUrl) ?? false);
     const assistantsCount = isMesh ? (normalizedJournal ? 2 : 1) : 0;
 
+    if (assistantsSectionLabel) {
+        assistantsSectionLabel.style.display = isMesh ? "block" : "none";
+    }
+
     if (normalizedJournal) {
         if (notClassJournalHint) notClassJournalHint.style.display = "none";
         if (assistantsAccordion) assistantsAccordion.style.display = "block";
         // Если активны оба ассистента — сворачиваем «Учебные умения», пока задача не запущена
         if (!isTaskRunning) {
-            skillsCard?.setCollapsed(true);
+            skillsCard?.setOpen(false);
         }
     } else {
         if (assistantsAccordion) assistantsAccordion.style.display = "none";
@@ -567,17 +572,7 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
         const isErr = !isStopped && Boolean(msg.isError || msg.type === "error");
 
         card.showRunPanel(isErr ? "error" : (isStopped ? "neutral" : "success"));
-
-        if (isStopped) {
-            card.refs.badge.className = "assistant-card-badge is-paused";
-            card.refs.badge.textContent = "Остановлено";
-        } else if (isErr) {
-            card.refs.badge.className = "assistant-card-badge is-error";
-            card.refs.badge.textContent = "Ошибка";
-        } else {
-            card.refs.badge.className = "assistant-card-badge is-success";
-            card.refs.badge.textContent = "Готово";
-        }
+        card.setResultBadge(isStopped ? "paused" : (isErr ? "error" : "success"));
 
         card.refs.status.textContent = msg.title || (
             isStopped ? "Остановлено" : (isErr ? "Ошибка" : "Готово!")

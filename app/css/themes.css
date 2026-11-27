@@ -22,6 +22,41 @@
     font-display: swap;
 }
 
+/* ===== Токены размерностей (единый стандарт панели) ===== */
+:root {
+    --font-offset: 0px;
+
+    /* Радиусы */
+    --radius-lg: 0.75rem;   /* карточки, модалки, основные блоки */
+    --radius-md: 0.6rem;    /* контролы: селекты, кнопки, внутренние блоки */
+    --radius-sm: 0.45rem;   /* пункты меню, мелкие иконки-кнопки */
+    --radius-pill: 999px;
+    --radius: var(--radius-lg);
+
+    /* Отступы */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+
+    /* Шрифты */
+    --fs-xs: 0.75rem;       /* подписи секций, бейджи, примечания, футер */
+    --fs-sm: 0.82rem;       /* контролы, описания, пункты меню, мета-текст */
+    --fs-md: 0.9rem;        /* кнопки, табы, заголовки карточек и аккордеонов */
+    --fs-lg: 1.15rem;       /* заголовок приложения */
+
+    /* Контролы и границы */
+    --control-h: 2.15rem;   /* стандартная высота контрола (селект, кнопка ↻) */
+    --icon-btn-sm: 1.75rem; /* мелкие квадратные кнопки (плеер, закрыть, свернуть) */
+    --border-w: 1.5px;      /* основная рамка карточек и контролов */
+    --border-w-thin: 1px;   /* тонкие границы и разделители */
+
+    /* Анимации */
+    --tr-fast: 0.15s ease;
+    --tr-base: 0.2s ease;
+}
+
+/* ===== Темы оформления ===== */
 :root,
 :root[data-theme="light"] {
     --bg: #faf7f2;
@@ -43,8 +78,6 @@
     --summary-text: #3a4148;
     --shadow: 0 2px 8px rgba(31, 36, 40, 0.05);
     --tab-active-shadow: 0 1px 3px rgba(31, 36, 40, 0.08);
-    --radius: 0.85rem;
-    --font-offset: 0px;
 }
 
 :root[data-theme="mesh"] {
@@ -89,4 +122,12 @@
     --summary-text: #d7dfe4;
     --shadow: 0 2px 12px rgba(3, 24, 48, 0.45);
     --tab-active-shadow: 0 1px 4px rgba(3, 24, 48, 0.5);
+}
+
+:root {
+    --gauge-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --gauge-target-dur: 0.30s;
+    --gauge-actual-dur: 0.46s;
+    --gauge-actual-delay: 0.54s;
+    --gauge-value-delay: 0.94s;
 }

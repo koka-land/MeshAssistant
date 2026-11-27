@@ -1,7 +1,7 @@
 function createAssistantCard({
     id,
     title,
-    open = true,
+    open = false,
     onTogglePause,
     onStop,
     onReload,
@@ -15,7 +15,7 @@ function createAssistantCard({
         <button type="button" class="assistant-card-header" aria-expanded="${open}">
             <span class="assistant-card-title-wrap">
                 <span class="assistant-card-title">${title}</span>
-                <span class="assistant-card-badge" data-role="badge">Готов</span>
+                <span class="assistant-card-badge is-hidden" data-role="badge"></span>
             </span>
             <span class="assistant-card-chevron" aria-hidden="true">▾</span>
         </button>
@@ -98,6 +98,19 @@ function createAssistantCard({
     let isPaused = false;
     let isCollapsed = false;
 
+    function setBadge(text = "", variantClass = "") {
+        const trimmed = String(text || "").trim();
+        if (!trimmed) {
+            refs.badge.className = "assistant-card-badge is-hidden";
+            refs.badge.textContent = "";
+            return;
+        }
+        refs.badge.className = variantClass
+            ? `assistant-card-badge ${variantClass}`
+            : "assistant-card-badge";
+        refs.badge.textContent = trimmed;
+    }
+
     function setOpen(nextOpen) {
         const val = Boolean(nextOpen);
         card.classList.toggle("is-open", val);
@@ -164,8 +177,7 @@ function createAssistantCard({
         setCollapsed(false);
         refs.pauseBtn.disabled = true;
         refs.stopBtn.disabled = true;
-        refs.badge.className = "assistant-card-badge";
-        refs.badge.textContent = "Готов";
+        setBadge("", "");
     }
 
     function setRunning(running) {
@@ -174,16 +186,26 @@ function createAssistantCard({
         if (running) {
             setOpen(true);
             setPaused(false);
-            refs.badge.className = "assistant-card-badge is-running";
-            refs.badge.textContent = "Идёт";
+            setBadge("Идёт", "is-running");
         }
     }
 
     function setPausedState(paused, statusText = "На паузе") {
         setPaused(paused);
-        refs.badge.className = paused ? "assistant-card-badge is-paused" : "assistant-card-badge is-running";
-        refs.badge.textContent = paused ? "Пауза" : "Идёт";
+        setBadge(paused ? "Пауза" : "Идёт", paused ? "is-paused" : "is-running");
         refs.status.textContent = paused ? statusText : "Обработка...";
+    }
+
+    function setResultBadge(state) {
+        if (state === "paused") {
+            setBadge("Остановлено", "is-paused");
+        } else if (state === "error") {
+            setBadge("Ошибка", "is-error");
+        } else if (state === "success") {
+            setBadge("Готово", "is-success");
+        } else {
+            setBadge("", "");
+        }
     }
 
     return {
@@ -194,6 +216,8 @@ function createAssistantCard({
         showRunPanel,
         hideRunPanel,
         setRunning,
-        setPausedState
+        setPausedState,
+        setBadge,
+        setResultBadge
     };
 }

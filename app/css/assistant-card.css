@@ -1,9 +1,9 @@
 .assistant-card {
     background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
+    border: var(--border-w) solid var(--border);
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-3);
     box-shadow: var(--shadow);
 }
 
@@ -12,14 +12,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.75rem 0.85rem;
+    gap: var(--space-2);
+    padding: var(--space-3) 0.85rem;
     background: transparent;
     border: none;
     color: var(--text);
     cursor: pointer;
     text-align: left;
-    transition: background 0.15s ease;
+    transition: background var(--tr-fast);
 }
 
 .assistant-card-header:hover {
@@ -29,12 +29,12 @@
 .assistant-card-title-wrap {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-2);
     min-width: 0;
 }
 
 .assistant-card-title {
-    font-size: 0.95rem;
+    font-size: var(--fs-md);
     font-weight: 700;
     color: var(--text);
 }
@@ -44,16 +44,21 @@
     align-items: center;
     justify-content: center;
     height: 1.35rem;
-    padding: 0 0.52rem;
-    border-radius: 999px;
-    border: 1px solid transparent;
-    font-size: 0.74rem;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-pill);
+    border: var(--border-w-thin) solid transparent;
+    font-size: var(--fs-xs);
     font-weight: 700;
     line-height: 1;
     background: var(--primary-soft);
     color: var(--primary);
     white-space: nowrap;
     flex-shrink: 0;
+}
+
+.assistant-card-badge.is-hidden,
+.assistant-card-badge:empty {
+    display: none;
 }
 
 .assistant-card-badge.is-running {
@@ -81,10 +86,10 @@
 }
 
 .assistant-card-chevron {
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
     font-weight: 700;
     color: var(--primary);
-    transition: transform 0.2s ease;
+    transition: transform var(--tr-base);
 }
 
 .assistant-card:not(.is-open) .assistant-card-chevron {
@@ -93,9 +98,10 @@
 
 .assistant-card-body {
     display: none;
-    padding: 0.75rem;
-    border-top: 1px solid var(--divider);
+    padding: var(--space-3);
+    border-top: var(--border-w-thin) solid var(--divider);
 }
+
 .assistant-settings-slot > :last-child {
     margin-bottom: 0;
 }
@@ -111,8 +117,8 @@
 .mode-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
 }
 
 .mode-card {
@@ -121,10 +127,10 @@
     gap: 0.65rem;
     padding: 0.7rem 0.8rem;
     background: var(--bg);
-    border: 1.5px solid var(--border);
-    border-radius: 0.75rem;
+    border: var(--border-w) solid var(--border);
+    border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color var(--tr-fast), background var(--tr-fast);
 }
 
 .mode-card:has(input:checked) {
@@ -132,42 +138,27 @@
     background: var(--primary-soft);
 }
 
-mode-card input[type="radio"] {
-    appearance: none;
-    -webkit-appearance: none;
-    position: relative;
-    width: 1.15rem;
-    height: 1.15rem;
-    margin-top: 0.12rem;
-    border-radius: 50%;
-    border: 1.5px solid var(--border);
-    background: var(--surface);
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
 .mode-name {
     display: block;
-    font-size: 0.92rem;
+    font-size: var(--fs-md);
     font-weight: 600;
 }
 
 .mode-hint {
     display: block;
-    font-size: 0.78rem;
+    font-size: var(--fs-xs);
     color: var(--muted);
     margin-top: 0.15rem;
 }
 
 .assistant-run-panel {
     display: none;
-    margin-top: 0.75rem;
-    padding: 0.75rem;
-    border-radius: 0.75rem;
-    border: 1.5px solid var(--border);
+    margin-top: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius-lg);
+    border: var(--border-w) solid var(--border);
     background: var(--bg);
-    transition: border-color 0.2s ease;
+    transition: border-color var(--tr-base);
 }
 
 .assistant-run-panel.visible {
@@ -190,12 +181,12 @@ mode-card input[type="radio"] {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
+    gap: var(--space-2);
     margin-bottom: 0.35rem;
 }
 
 .run-status {
-    font-size: 0.88rem;
+    font-size: var(--fs-md);
     font-weight: 700;
     color: var(--primary);
 }
@@ -216,18 +207,7 @@ mode-card input[type="radio"] {
 }
 
 .player-btn {
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
-    background: var(--surface);
     color: var(--text);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0;
-    transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
 
 .player-btn:hover:not(:disabled) {
@@ -256,35 +236,14 @@ mode-card input[type="radio"] {
     background: var(--danger-hover);
 }
 
-.panel-collapse-btn {
-    width: 1.75rem;
-    height: 1.75rem;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--muted);
-    font-size: 0.85rem;
-    font-weight: 700;
-    cursor: pointer;
-    border-radius: 0.5rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.15s, color 0.15s;
-}
-
-.panel-collapse-btn:hover {
-    background: var(--primary-soft);
-    color: var(--text);
-}
-
 .run-details {
     margin-bottom: 0.45rem;
 }
 
 .run-class {
-    font-size: 0.8rem;
+    font-size: var(--fs-sm);
     color: var(--muted);
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--space-1);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -294,11 +253,11 @@ mode-card input[type="radio"] {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-2);
 }
 
 .panel-student {
-    font-size: 0.92rem;
+    font-size: var(--fs-md);
     font-weight: 700;
     color: var(--text);
     white-space: nowrap;
@@ -307,7 +266,7 @@ mode-card input[type="radio"] {
 }
 
 .panel-counter {
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
     font-weight: 700;
     color: var(--primary);
     white-space: nowrap;
@@ -317,7 +276,7 @@ mode-card input[type="radio"] {
     width: 100%;
     height: 0.45rem;
     background: var(--tabs-bg);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     overflow: hidden;
 }
 
@@ -325,8 +284,8 @@ mode-card input[type="radio"] {
     width: 0%;
     height: 100%;
     background: var(--primary);
-    border-radius: 999px;
-    transition: width 0.2s ease, background-color 0.2s ease;
+    border-radius: var(--radius-pill);
+    transition: width var(--tr-base), background-color var(--tr-base);
 }
 
 .assistant-run-panel.success .bar-fill { background: var(--success); }
@@ -334,10 +293,10 @@ mode-card input[type="radio"] {
 
 .panel-summary {
     display: none;
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--divider);
-    font-size: 0.84rem;
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: var(--border-w-thin) solid var(--divider);
+    font-size: var(--fs-sm);
     color: var(--summary-text);
     white-space: pre-line;
     line-height: 1.45;
@@ -352,9 +311,9 @@ mode-card input[type="radio"] {
 }
 
 .assistant-report-slot:not(:empty) {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--divider);
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: var(--border-w-thin) solid var(--divider);
 }
 
 .assistant-run-panel.success .panel-counter { color: var(--success); }
@@ -362,7 +321,7 @@ mode-card input[type="radio"] {
 
 .panel-actions.visible {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--space-2);
 }
 
 .panel-actions .btn {
