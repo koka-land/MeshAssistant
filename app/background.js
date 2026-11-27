@@ -134,6 +134,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         "js/teacher-metrics.js",
                         "js/journal-static.js",
                         "js/assistants/skills.js",
+                        "js/assistants/metrics.js",
+                        "js/assistants/lessons.js",
                         "content.js"
                     ]
                 });

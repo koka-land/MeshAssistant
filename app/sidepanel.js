@@ -11,11 +11,6 @@ const notClassJournalHint = document.getElementById("notClassJournalHint");
 const assistantsSectionLabel = document.getElementById("assistantsSectionLabel");
 const assistantsAccordion = document.getElementById("assistantsAccordion");
 const skillsControls = document.getElementById("skillsControls");
-const lessonsControls = document.getElementById("lessonsControls");
-const lessonsDateLabel = document.getElementById("lessonsDateLabel");
-const lessonsListEl = document.getElementById("lessonsList");
-const lessonsRefreshBtn = document.getElementById("lessonsRefreshBtn");
-const startLessonsBtn = document.getElementById("startLessonsBtn");
 const fontScaleSlider = document.getElementById("fontScaleSlider");
 const fontScaleBadge = document.getElementById("fontScaleBadge");
 
@@ -44,7 +39,6 @@ let contextRetryTimer = null;
 let isTaskRunning = false;
 let isTaskPaused = false;
 let lastAppliedClassJournal = null;
-let todayLessonsLoaded = false;
 
 function openReportPage() {
     chrome.tabs.create({ url: chrome.runtime.getURL("report.html") });
@@ -234,122 +228,18 @@ window.MeshMetricsUI?.initMetricsUI({
     }
 });
 
-// ===== Карточка ассистента «Запуск уроков» =====
-const lessonsCard = typeof createAssistantCard === "function"
-    ? createAssistantCard({
-        id: "lessons",
-        title: "Запуск уроков",
-        open: false
+const lessonsCard = window.MeshLessonsUI?.init({
+    container: assistantsAccordion,
+    onFetchSchedule: (force = false) => sendMessageToBackground({
+        target: "content",
+        payload: { action: "fetch_today_schedule", force: Boolean(force) }
+    }),
+    onSendCommand: (payload) => sendMessageToBackground({
+        target: "content",
+        payload
     })
-    : null;
+}) || null;
 
-if (assistantsAccordion && lessonsCard) {
-    assistantsAccordion.appendChild(lessonsCard.element);
-    if (lessonsControls) {
-        lessonsCard.refs.settingsSlot.appendChild(lessonsControls);
-    }
-}
-
-function timeToMinutes(hhmm) {
-    const [h, m] = String(hhmm || "").split(":").map(Number);
-    if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
-    return h * 60 + m;
-}
-
-function renderLessonsList(lessons = [], errorText = "") {
-    if (!lessonsListEl) return;
-
-    if (lessonsDateLabel) {
-        const todayStr = new Date().toLocaleDateString("ru-RU", {
-            day: "2-digit",
-            month: "2-digit"
-        });
-        lessonsDateLabel.textContent = `Уроки на сегодня (${todayStr})`;
-    }
-
-    if (errorText) {
-        lessonsListEl.innerHTML = `<div class="lessons-empty">${errorText}</div>`;
-        if (startLessonsBtn) startLessonsBtn.disabled = true;
-        return;
-    }
-
-    if (!Array.isArray(lessons) || lessons.length === 0) {
-        lessonsListEl.innerHTML = `<div class="lessons-empty">На сегодня уроков не найдено</div>`;
-        if (startLessonsBtn) startLessonsBtn.disabled = true;
-        return;
-    }
-
-    const now = new Date();
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-    let hasUpcoming = false;
-
-    lessonsListEl.innerHTML = "";
-    lessons.forEach(lesson => {
-        const startMin = timeToMinutes(lesson.startTime);
-        const endMin = timeToMinutes(lesson.endTime);
-        const isPast = endMin !== null && endMin < nowMin;
-        const isCurrent = startMin !== null && endMin !== null && nowMin >= startMin && nowMin <= endMin;
-
-        if (!isPast) hasUpcoming = true;
-
-        const row = document.createElement("div");
-        row.className = `lesson-item${isPast ? " is-past" : ""}${isCurrent ? " is-current" : ""}`;
-
-        const timeLabel = lesson.startTime && lesson.endTime
-            ? `${lesson.startTime}–${lesson.endTime}`
-            : (lesson.startTime || "—");
-
-        const tagClass = lesson.hasScenario ? "has-scenario" : "no-scenario";
-        const tagText = lesson.hasScenario ? "Сценарий" : "Нет сценария";
-
-        row.innerHTML = `
-            <div class="lesson-main">
-                <span class="lesson-time">${timeLabel}</span>
-                <span class="lesson-title">${lesson.className} · ${lesson.subjectName}</span>
-            </div>
-            <span class="lesson-tag ${tagClass}">${tagText}</span>
-        `;
-        lessonsListEl.appendChild(row);
-    });
-
-    if (startLessonsBtn) {
-        startLessonsBtn.disabled = !hasUpcoming;
-    }
-}
-
-async function requestTodaySchedule(force = false) {
-    if (!force && todayLessonsLoaded) return;
-    if (lessonsRefreshBtn) lessonsRefreshBtn.classList.add("is-loading");
-    if (lessonsListEl && !todayLessonsLoaded) {
-        lessonsListEl.innerHTML = `<div class="lessons-empty">Загрузка расписания…</div>`;
-    }
-
-    try {
-        const res = await sendMessageToBackground({
-            target: "content",
-            payload: { action: "fetch_today_schedule", force: Boolean(force) }
-        });
-
-        if (res?.ok && Array.isArray(res.lessons)) {
-            todayLessonsLoaded = true;
-            renderLessonsList(res.lessons);
-        } else if (res?.error) {
-            renderLessonsList([], res.error);
-        } else {
-            renderLessonsList([], "Не удалось загрузить расписание");
-        }
-    } catch {
-        renderLessonsList([], "Нет связи со страницей МЭШ");
-    } finally {
-        if (lessonsRefreshBtn) lessonsRefreshBtn.classList.remove("is-loading");
-    }
-}
-
-lessonsRefreshBtn?.addEventListener("click", () => {
-    requestTodaySchedule(true);
-});
-
-// ===== Карточка ассистента «Учебные умения» =====
 const skillsCard = typeof createAssistantCard === "function"
     ? createAssistantCard({
         id: "skills",
@@ -417,9 +307,7 @@ async function applyPageAssistantsState({ isClassJournal, tabUrl = "" }) {
         assistantsAccordion.style.display = isMesh ? "block" : "none";
     }
 
-    if (lessonsCard) {
-        lessonsCard.element.style.display = isMesh ? "" : "none";
-    }
+    window.MeshLessonsUI?.setVisible?.(isMesh);
 
     if (skillsCard) {
         skillsCard.element.style.display = normalizedJournal ? "" : "none";
@@ -437,10 +325,6 @@ async function applyPageAssistantsState({ isClassJournal, tabUrl = "" }) {
         if (notClassJournalHint) {
             notClassJournalHint.style.display = isMesh ? "none" : "block";
         }
-    }
-
-    if (isMesh) {
-        requestTodaySchedule(false);
     }
 
     window.MeshMetricsUI?.setPageContext?.({
@@ -670,9 +554,7 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
         return;
     }
 
-    if (msg.type === "today_schedule") {
-        todayLessonsLoaded = true;
-        renderLessonsList(msg.lessons || [], msg.error || "");
+    if (window.MeshLessonsUI?.handleMessage?.(msg)) {
         return;
     }
 
