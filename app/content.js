@@ -13,6 +13,65 @@
         switchNextClass
     } = window.MeshCore;
 
+    async function fetchTodaySchedule({ teacherId, academicYearId = 14, headers = {} }) {
+        const today = new Date().toISOString().slice(0, 10);
+        const url = new URL("https://school.mos.ru/api/ej/plan/teacher/v1/schedule_items");
+        url.searchParams.set("academic_year_id", String(academicYearId));
+        url.searchParams.set("teacher_id", String(teacherId));
+        url.searchParams.set("from", today);
+        url.searchParams.set("to", today);
+        url.searchParams.set("with_group_class_subject_info", "true");
+        url.searchParams.set("with_lesson_info", "true");
+        url.searchParams.set("with_course_calendar_info", "true");
+        url.searchParams.set("with_rooms_info", "true");
+        url.searchParams.set("original", "true");
+        url.searchParams.set("page", "1");
+        url.searchParams.set("per_page", "100");
+
+        const res = await fetch(url.toString(), {
+            credentials: "include",
+            headers: {
+                "accept": "application/json",
+                "x-mes-subsystem": "teacherweb",
+                ...headers
+            }
+        });
+
+        if (!res.ok) {
+            throw new Error(`Ошибка расписания: HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : (data.items || data.data || []);
+
+        return items
+            .map(normalizeLessonItem)
+            .filter(Boolean)
+            .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    }
+
+    function normalizeLessonItem(item) {
+        if (!item) return null;
+        const startTime = String(item.begin_time || item.start_time || "").slice(0, 5);
+        const endTime = String(item.end_time || "").slice(0, 5);
+        const className = item.group_name || item.class_unit_name || item.class_unit?.name || "Класс";
+        const subjectName = item.subject_name || item.subject?.name || "Урок";
+
+        // Проверяем, есть ли прикреплённые материалы (уточним точное поле после первого живого ответа)
+        const materials = item.lesson?.materials || item.materials || [];
+        const hasScenario = Array.isArray(materials) && materials.length > 0;
+
+        return {
+            id: item.id,
+            startTime,
+            endTime,
+            className,
+            subjectName,
+            hasScenario,
+            raw: item
+        };
+    }
+
     async function loadSchoolRules() {
         if (!window.MeshJournalStatic) return null;
         return (

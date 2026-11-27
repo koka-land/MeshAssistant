@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/controls.css">
     <link rel="stylesheet" href="css/assistant-card.css">
     <link rel="stylesheet" href="css/metrics.css">
+    <link rel="stylesheet" href="css/lessons.css">
     <link rel="stylesheet" href="css/settings.css">
 </head>
 <body>
@@ -47,7 +48,7 @@
                     <strong>Ассистенты готовы</strong>
                 </div>
                 <p class="empty-state-desc">
-                    Для начала работы вам нужно открыть подходящий раздел на school.mos.ru — нужные инструменты пояятся здесь автоматически.
+                    Для начала работы вам нужно открыть подходящий раздел на school.mos.ru — нужные инструменты появятся здесь автоматически.
                 </p>
                 <p class="empty-state-hint">
                     Сейчас журнал класса не открыт. Перейдите в любой класс или откройте путеводитель, чтобы узнать о доступных возможностях.
@@ -134,6 +135,40 @@
 
         <div id="assistantsAccordion"></div>
 
+        <!-- Контролы ассистента «Запуск уроков» -->
+        <div id="lessonsControls">
+            <div class="lessons-toolbar">
+                <span class="skill-category-title" id="lessonsDateLabel">Уроки на сегодня</span>
+                <button
+                    type="button"
+                    id="lessonsRefreshBtn"
+                    class="metrics-refresh-btn"
+                    title="Обновить расписание"
+                    aria-label="Обновить расписание"
+                >↻</button>
+            </div>
+
+            <div id="lessonsList" class="lessons-list">
+                <div class="lessons-empty">Загрузка расписания…</div>
+            </div>
+
+            <div class="card">
+                <label class="check-row">
+                    <input type="checkbox" id="lessonsAllDay">
+                    <span>Пройти все оставшиеся уроки за день</span>
+                </label>
+                <label class="check-row">
+                    <input type="checkbox" id="lessonsAutoAttach">
+                    <span>Подбирать сценарий, если его нет</span>
+                </label>
+            </div>
+
+            <div class="actions">
+                <button id="startLessonsBtn" class="btn btn-primary" disabled>Запустить</button>
+            </div>
+        </div>
+
+        <!-- Контролы ассистента «Учебные умения» -->
         <div id="skillsControls">
             <div class="skill-category-title">Режим работы</div>
             <div class="mode-list">
@@ -451,6 +486,16 @@
                         </summary>
                         <div class="guide-changelog-body">
                             <p>Работает на любой странице <code>school.mos.ru</code>. Показывает обязательные и дополнительные показатели учителя, позволяет переключать расчётные периоды и рассчитывает примерную надбавку.</p>
+                        </div>
+                    </details>
+
+                    <details class="guide-changelog">
+                        <summary class="guide-changelog-trigger">
+                            <span>Запуск уроков</span>
+                            <span class="guide-changelog-chevron">▾</span>
+                        </summary>
+                        <div class="guide-changelog-body">
+                            <p>Работает на любой странице <code>school.mos.ru</code>. Показывает расписание уроков на сегодня и запускает прикреплённые сценарии по времени урока в фоновом режиме.</p>
                         </div>
                     </details>
 
